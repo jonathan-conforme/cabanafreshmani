@@ -1,9 +1,10 @@
 <?php
 namespace Tests\Feature;
 
-use App\Models\User;
+
 use App\Services\User\UserService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Database\Seeders\RolePermissionSeeder;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -14,7 +15,9 @@ class UserServiceTest extends TestCase
     public function test_puede_crear_un_vendedor_de_fritada_correctamente(): void
     {
         // 1. Preparar: Crear el rol de prueba
-        Role::create(['name' => 'vendedor_fritada']);
+              $this->seed(RolePermissionSeeder::class);
+
+
         $service = app(UserService::class);
 
         $datosEmpleado = [
