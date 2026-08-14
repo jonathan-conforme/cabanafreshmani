@@ -98,6 +98,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                     </>
                                 )}
                             </div>
+
                         </div>
 
                         {/* Dropdown de usuario */}
