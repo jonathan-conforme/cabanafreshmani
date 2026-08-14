@@ -78,7 +78,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                         href={route('users.create')}
                                         active={route().current('users.*')}
                                     >
-                                        Usuarios
+                                        ostin
                                     </NavLink>
                                     
                                 )}
