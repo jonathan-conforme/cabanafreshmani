@@ -8,7 +8,7 @@ import { route } from "ziggy-js";
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
-    
+
     // 1. Manejo seguro de roles y permisos
     const roles = user?.roles || [];
     const permissions = user?.permissions || [];
@@ -51,7 +51,7 @@ export default function AuthenticatedLayout({ header, children }) {
                             {/* Logo */}
                             <div className="flex shrink-0 items-center">
                                 <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
+                                 <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
                                 </Link>
                             </div>
 
@@ -74,13 +74,28 @@ export default function AuthenticatedLayout({ header, children }) {
                                 )}
 
                                 {hasRole('administrador') && (
-                                    <NavLink
-                                        href={route('users.create')}
-                                        active={route().current('users.*')}
-                                    >
-                                        Usuarios
-                                    </NavLink>
-                                    
+                                    <>
+                                        <NavLink
+                                            href={route('users.create')}
+                                            active={route().current('users.*')}
+                                        >
+                                            Usuarios
+                                        </NavLink>
+
+                                        <NavLink
+                                            href={route('clientes.create')}
+                                            active={route().current('clientes.*')}
+                                        >
+                                            Clientes
+                                        </NavLink>
+
+                                        <NavLink
+                                            href={route('proveedores.create')}
+                                            active={route().current('proveedores.*')}
+                                        >
+                                            Provedores
+                                        </NavLink>
+                                    </>
                                 )}
                             </div>
                         </div>

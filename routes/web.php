@@ -4,6 +4,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\User\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Cliente\ClienteController;
+use App\Http\Controllers\Proveedor\ProveedorController;
+
 use Inertia\Inertia;
 
 Route::redirect('/', '/login');
@@ -20,6 +23,8 @@ Route::middleware('auth')->group(function () {
 });
 Route::middleware(['auth', 'role:administrador'])->group(function () {
   Route::resource('users', UserController::class);
+  Route::resource('clientes', ClienteController::class);
+Route::resource('proveedores', ProveedorController::class);
 });
 
 require __DIR__.'/auth.php';
