@@ -1,11 +1,15 @@
 <?php
 
-use App\Http\Controllers\Cliente\ClienteController;
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UnidadMedida\UnidadMedidaController;
 use App\Http\Controllers\Proveedor\ProveedorController;
+use App\Http\Controllers\Producto\ProductoController;
+use App\Http\Controllers\Cliente\ClienteController;
+use App\Http\Controllers\Compra\CompraController;
 use App\Http\Controllers\User\UserController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
 
 Route::redirect('/', '/login');
 
@@ -27,6 +31,18 @@ Route::middleware(['auth', 'role:administrador'])->group(function () {
     Route::resource('proveedores', ProveedorController::class)
     ->parameters([
         'proveedores' => 'proveedor',
+    ]);
+    Route::resource('unidad-medidas', UnidadMedidaController::class)
+    ->parameters([
+        'unidad-medidas' => 'unidad_medida',
+    ]);
+    Route::resource('productos', ProductoController::class)
+    ->parameters([
+        'productos' => 'producto',
+    ]);
+    Route::resource('compras', CompraController::class)
+    ->parameters([
+        'compras' => 'compra',
     ]);
 });
 

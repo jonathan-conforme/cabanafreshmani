@@ -6,12 +6,15 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Database\Seeders\ClienteSeeder;
+use Database\Seeders\ProveedorSeeder;
+use Database\Seeders\UnidadMedidaSeeder;
+use Database\Seeders\ProductoSeeder;
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
         $this->call(RolePermissionSeeder::class);
-       
+
 
         $administrador = User::factory()->create([
             'name' => 'Administrador',
@@ -39,5 +42,8 @@ class DatabaseSeeder extends Seeder
 
         $this->call(ProveedorSeeder::class);
         $this->call(ClienteSeeder::class);
+        $this->call(UnidadMedidaSeeder::class);
+        $this->call([UnidadMedidaSeeder::class,ProductoSeeder::class,
+]);
     }
 }

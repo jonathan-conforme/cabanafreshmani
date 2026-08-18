@@ -16,9 +16,10 @@ return new class extends Migration
             $table->foreignId('proveedor_id')->constrained('proveedores')->onDelete('restrict');
             $table->foreignId('user_id')->constrained('users')->onDelete('restrict');
             $table->decimal('total', 10, 2);
+            $table->string('factura')->nullable();
            // --- NUEVOS CAMPOS PARA CRÉDITO Y CUENTAS POR PAGAR ---
             $table->enum('tipo_pago', ['contado', 'credito'])->default('contado');
-            $table->enum('metodo_pago', ['efectivo', 'transferencia', 'tarjeta'])->default('efectivo');
+            $table->enum('metodo_pago', ['efectivo', 'transferencia'])->nullable();
             $table->enum('estado', ['pagada', 'pendiente', 'cancelada'])->default('pagada');
             $table->decimal('monto_pagado', 10, 2)->default(0.00); // Permite registrar abonos/pagos parciales
             $table->date('fecha_vencimiento')->nullable(); // Fecha límite dada por el proveedor

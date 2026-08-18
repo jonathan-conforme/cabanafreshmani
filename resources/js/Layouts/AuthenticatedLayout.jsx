@@ -100,6 +100,50 @@ export default function AuthenticatedLayout({ header, children }) {
                 </svg>
             ),
         },
+      {
+    key: 'productos',
+    href: route('productos.index'),
+    active: route().current('productos.*'),
+    label: 'Productos',
+    show: hasAnyRole(['administrador']),
+    icon: (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            className="h-5 w-5"
+        >
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M20 7.5L12 3 4 7.5m16 0L12 12 4 7.5M20 7.5V16.5L12 21 4 16.5V7.5M12 12V21"
+            />
+        </svg>
+    ),
+},
+ {
+    key: 'Compras',
+    href: route('compras.index'),
+    active: route().current('compras.*'),
+    label: 'Compras',
+    show: hasAnyRole(['administrador']),
+    icon: (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            className="h-5 w-5"
+        >
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M20 7.5L12 3 4 7.5m16 0L12 12 4 7.5M20 7.5V16.5L12 21 4 16.5V7.5M12 12V21"
+            />
+        </svg>
+    ),
+},
     ];
 
     return (
