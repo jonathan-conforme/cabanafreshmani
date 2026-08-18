@@ -2,12 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Cliente extends Model
+class Cliente extends BaseModel
 {
     use HasFactory;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'nombre',
+        'apellido',
+        'identificacion',
+        'telefono',
+        'email',
+        'limite_credito',
+        'direccion',
+
+    ];
 }

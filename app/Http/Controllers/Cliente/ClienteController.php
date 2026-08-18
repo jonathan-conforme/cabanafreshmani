@@ -8,73 +8,71 @@ use App\Models\Cliente;
 use App\Services\Cliente\ClienteService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class ClienteController extends Controller
 {
-    public function __construct(protected ClienteService $clienteService) {}
+    public function __construct(
+        protected ClienteService $clienteService
+    ) {}
 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
-
         return Inertia::render('Clientes/Index', [
-            'clientes' => $clientes,
+            'clientes' => $this->clienteService->getPaginated(
+                15,
+                $request->get('search')
+            ),
+            'filters' => $request->only('search'),
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        return Inertia::render('Clientes/Create');
+        // Ya no necesitamos esta vista si utilizamos modal.
+        return redirect()->route('clientes.index');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(ClienteRequest $request)
     {
         $this->clienteService->create($request->validated());
 
-        return redirect()->route('clientes.create')->with('success', 'Cliente creado con éxito.');
+        return redirect()
+            ->route('clientes.index')
+            ->with('success', 'Cliente creado con éxito.');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(string $id)
     {
-        //
+        // Ya no necesitamos esta vista si utilizamos modal.
+        return redirect()->route('clientes.index');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(ClienteRequest $request, Cliente $cliente)
-    {
-        $this->clienteService->update($cliente, $request->validated());
+    public function update(
+        ClienteRequest $request,
+        Cliente $cliente
+    ) {
+        $this->clienteService->update(
+            $cliente,
+            $request->validated()
+        );
 
-        return redirect()->route('clientes.index')->with('success', 'Cliente actualizado con éxito.');
+        return redirect()
+            ->route('clientes.index')
+            ->with('success', 'Cliente actualizado con éxito.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Cliente $cliente)
     {
         $this->clienteService->delete($cliente);
 
-        return redirect()->route('clientes.index')->with('success', 'Cliente eliminado con éxito.');
+        return redirect()
+            ->route('clientes.index')
+            ->with('success', 'Cliente eliminado con éxito.');
     }
 }

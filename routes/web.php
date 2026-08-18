@@ -1,16 +1,13 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\User\UserController;
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Cliente\ClienteController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Proveedor\ProveedorController;
-
+use App\Http\Controllers\User\UserController;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::redirect('/', '/login');
-
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
@@ -22,9 +19,15 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 Route::middleware(['auth', 'role:administrador'])->group(function () {
-  Route::resource('users', UserController::class);
-  Route::resource('clientes', ClienteController::class);
-Route::resource('proveedores', ProveedorController::class);
+    Route::resource('users', UserController::class);
+    Route::resource('clientes', ClienteController::class)
+    ->parameters([
+        'clientes' => 'cliente',
+    ]);
+    Route::resource('proveedores', ProveedorController::class)
+    ->parameters([
+        'proveedores' => 'proveedor',
+    ]);
 });
 
 require __DIR__.'/auth.php';

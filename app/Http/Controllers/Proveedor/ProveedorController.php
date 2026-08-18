@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Proveedor;
 
-use App\Http\Requests\ProveedorRequest;
+use App\Http\Requests\Proveedor\ProveedorRequest;
 use App\Models\Proveedor;
-use App\Services\ProveedorService;
+use App\Services\Proveedor\ProveedorService;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ProveedorController extends Controller
 {
@@ -14,10 +16,12 @@ class ProveedorController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+   public function index(Request $request): Response
     {
-        $proveedores = $this->proveedorService->getPaginated(10, $request->get('search'));
-        return view('proveedores.index', compact('proveedores'));
+        return Inertia::render('Proveedores/Index', [
+            'proveedores' => $this->proveedorService->getPaginated(15, $request->get('search')),
+            'filters' => $request->only('search')
+        ]);
     }
 
     /**
@@ -67,7 +71,7 @@ class ProveedorController extends Controller
      */
     public function destroy(Proveedor $proveedor)
     {
-        $this->proveedorService->delete($proveedor);
+        $this->proveedorService->destroy($proveedor);
         return redirect()->route('proveedores.index')->with('success', 'Proveedor eliminado con éxito.');
     }
 }

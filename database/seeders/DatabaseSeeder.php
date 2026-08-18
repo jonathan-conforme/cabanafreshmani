@@ -5,12 +5,13 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-
+use Database\Seeders\ClienteSeeder;
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
         $this->call(RolePermissionSeeder::class);
+       
 
         $administrador = User::factory()->create([
             'name' => 'Administrador',
@@ -35,5 +36,8 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $vendedorFritada->assignRole('vendedor_fritada');
+
+        $this->call(ProveedorSeeder::class);
+        $this->call(ClienteSeeder::class);
     }
 }

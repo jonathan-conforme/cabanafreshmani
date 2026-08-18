@@ -66,7 +66,7 @@ export default function AuthenticatedLayout({ header, children }) {
         },
         {
             key: 'usuarios',
-            href: route('users.create'),
+            href: route('users.index'),
             active: route().current('users.*'),
             label: 'Usuarios',
             show: hasRole('administrador'),
@@ -90,7 +90,7 @@ export default function AuthenticatedLayout({ header, children }) {
         },
         {
             key: 'proveedores',
-            href: route('proveedores.create'),
+            href: route('proveedores.index'),
             active: route().current('proveedores.*'),
             label: 'Proveedores',
             show: hasRole('administrador'),
@@ -147,9 +147,8 @@ export default function AuthenticatedLayout({ header, children }) {
 
             {/* Sidebar */}
             <aside
-                className={`fixed inset-y-0 left-0 z-50 flex w-64 max-w-[85vw] shrink-0 flex-col bg-gradient-to-br from-[#44281a] to-[#1c1210] transition-transform duration-200 ease-in-out lg:static lg:max-w-none lg:translate-x-0 ${
-                    showingNavigationDropdown ? 'translate-x-0' : '-translate-x-full'
-                }`}
+                className={`fixed inset-y-0 left-0 z-50 flex w-64 max-w-[85vw] shrink-0 flex-col bg-gradient-to-br from-[#44281a] to-[#1c1210] transition-transform duration-200 ease-in-out lg:static lg:max-w-none lg:translate-x-0 ${showingNavigationDropdown ? 'translate-x-0' : '-translate-x-full'
+                    }`}
             >
                 <div
                     className="flex items-center justify-center border-b border-white/10 px-4 py-6"
@@ -172,18 +171,16 @@ export default function AuthenticatedLayout({ header, children }) {
                                 key={item.key}
                                 href={item.href}
                                 aria-current={item.active ? 'page' : undefined}
-                                className={`group flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm font-semibold transition ${
-                                    item.active
+                                className={`group flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm font-semibold transition ${item.active
                                         ? 'bg-gradient-to-br from-orange-500 to-[#c85a0a] text-white shadow-lg shadow-orange-900/40'
                                         : 'text-[#e7d3ac] hover:bg-white/5 hover:text-white'
-                                }`}
+                                    }`}
                             >
                                 <span
-                                    className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
-                                        item.active
+                                    className={`flex h-8 w-8 items-center justify-center rounded-full transition ${item.active
                                             ? 'bg-white/20 text-white'
                                             : 'bg-white/10 text-amber-400 group-hover:text-amber-300'
-                                    }`}
+                                        }`}
                                 >
                                     {item.icon}
                                 </span>

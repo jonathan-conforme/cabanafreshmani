@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Proveedor;
 
 use App\Models\Proveedor;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ProveedorService
 {
-    public function getPaginated(int $perPage = 10, ?string $search = null): LengthAwarePaginator
+    public function getPaginated(int $perPage = 15, ?string $search = null): LengthAwarePaginator
     {
         return Proveedor::select(['id', 'nombre', 'contacto', 'telefono', 'email'])
             ->when($search, function ($query, $search) {
@@ -27,8 +27,8 @@ class ProveedorService
         return $proveedor->update($data);
     }
 
-    public function delete(Proveedor $proveedor): bool
+    public function destroy(Proveedor $proveedor): bool
     {
-        return $proveedor->delete();
+        return (bool) $proveedor->delete();
     }
 }

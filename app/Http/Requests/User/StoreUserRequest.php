@@ -29,7 +29,7 @@ class StoreUserRequest extends FormRequest
                 'lowercase',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email'),
+                Rule::unique('users', 'email')->ignore($this->route('user')),
             ],
 
             'password' => [
