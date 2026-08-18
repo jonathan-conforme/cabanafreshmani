@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { confirmDelete } from '@/Components/SweetAlert';
+import Tooltip from '@/Components/Tooltip';
+import { Pencil, Trash } from 'lucide-react';
 
 export default function Index({
     productos,
@@ -143,10 +146,11 @@ export default function Index({
     |--------------------------------------------------------------------------
     */
 
-    const handleDelete = (producto) => {
+    const handleDelete = async (producto) => {
         if (
-            confirm(
-                `¿Estás seguro de eliminar el producto "${producto.nombre}"?`
+            await confirmDelete(
+                'Esta acción no se puede deshacer.',
+                `¿Eliminar el producto "${producto.nombre}"?`
             )
         ) {
             router.delete(
@@ -210,300 +214,336 @@ export default function Index({
         }
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | ESTILOS REUTILIZABLES
+    |--------------------------------------------------------------------------
+    */
+
+    const inputClass =
+        'w-full rounded-lg border border-[#E5DCC0] bg-[#FFFDF6] px-4 py-2.5 text-sm text-[#3F3A2E] ' +
+        'placeholder-[#B6A87E] outline-none transition focus:border-[#0E7C86] focus:ring-2 focus:ring-[#0E7C86]/20 ' +
+        'disabled:cursor-not-allowed disabled:bg-[#F5F0E0] disabled:text-[#A3915F]';
+
+    const labelClass =
+        'mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#8A7A4E]';
+
+    const thClass =
+        'px-6 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-[#8A7A4E]';
+
+    const errorClass =
+        'mt-1.5 text-xs font-semibold text-[#D64545]';
+
     return (
         <AuthenticatedLayout
             header={
-                <h2>
+                <h2 className="text-xl font-bold text-[#0E7C86]">
                     Productos
                 </h2>
             }
         >
             <Head title="Productos" />
 
-            <div >
+            <div className="min-h-screen bg-[#FDF8E7] py-8">
 
-                {/* FLASH */}
-                {flash?.success && (
-                    <div >
-                        {flash.success}
-                    </div>
-                )}
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-                {/* CONTENEDOR PRINCIPAL */}
-                <div >
-
-                    {/* CABECERA */}
-                    <div c>
-
-                        <div >
-
-                            <div>
-                                <h1 >
-                                    Productos Registrados
-                                </h1>
-
-                                <p >
-                                    Administra productos, precios, stock y códigos de barras.
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={openCreateModal}
-                                
-                            >
-                                Nuevo Producto
-                            </button>
-
-                        </div>
-
-                        {/* BUSCADOR */}
-                        <form
-                            onSubmit={handleSearch}
-                            
-                        >
-
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) =>
-                                    setSearch(e.target.value)
-                                }
-                                placeholder="Buscar por nombre o código de barras..."
-                               />
-
-                            <button
-                                type="submit"
-                              >
-                                Buscar
-                            </button>
-
-                        </form>
-
-                    </div>
-
-                    {/* TABLA */}
-                    <div >
-
-                        <table >
-
-                            <thead>
-                                <tr >
-
-                                    <th>
-                                        Código
-                                    </th>
-
-                                    <th>
-                                        Producto
-                                    </th>
-
-                                    <th>
-                                        Unidad
-                                    </th>
-
-                                    <th>
-                                        Tipo
-                                    </th>
-
-                                    <th>
-                                        P. Compra
-                                    </th>
-
-                                    <th>
-                                        P. Venta
-                                    </th>
-
-                                    <th>
-                                        Stock
-                                    </th>
-
-                                    <th>
-                                        Acciones
-                                    </th>
-
-                                </tr>
-                            </thead>
-
-                            <tbod>
-
-                                {productos?.data?.length === 0 && (
-                                    <tr>
-                                        <td
-                                            colSpan={8}
-                                            
-                                        >
-                                            No se encontraron productos.
-                                        </td>
-                                    </tr>
-                                )}
-
-                                {productos?.data?.map((producto) => {
-
-                                    const stockBajo =
-                                        Number(producto.stock) <=
-                                        Number(producto.stock_minimo);
-
-                                    return (
-                                        <tr
-                                            key={producto.id}
-                                            
-                                        >
-
-                                            {/* CÓDIGO */}
-                                            <td>
-
-                                                {producto.codigo_barras ? (
-                                                    <span >
-                                                        {producto.codigo_barras}
-                                                    </span>
-                                                ) : (
-                                                    <span >
-                                                        Sin código
-                                                    </span>
-                                                )}
-
-                                            </td>
-
-                                            {/* PRODUCTO */}
-                                            <td >
-                                                {producto.nombre}
-                                            </td>
-
-                                            {/* UNIDAD */}
-                                            <td >
-                                                {producto.unidad?.nombre || '-'}
-                                            </td>
-
-                                            {/* TIPO */}
-                                            <td className="px-5 py-3.5 sm:px-7">
-
-                                                <span
-                                                    className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                                                        producto.es_granel
-                                                            ? 'bg-amber-50 text-amber-700'
-                                                            : 'bg-teal-50 text-teal-700'
-                                                    }`}
-                                                >
-                                                    {producto.es_granel
-                                                        ? 'Granel'
-                                                        : 'Unidad'}
-                                                </span>
-
-                                            </td>
-
-                                            {/* PRECIO COMPRA */}
-                                            <td >
-                                                ${Number(
-                                                    producto.precio_compra
-                                                ).toFixed(2)}
-                                            </td>
-
-                                            {/* PRECIO VENTA */}
-                                            <td>
-                                                ${Number(
-                                                    producto.precio_venta
-                                                ).toFixed(2)}
-                                            </td>
-
-                                            {/* STOCK */}
-                                            <td>
-
-                                                <span
-                                                    className={`font-bold ${
-                                                        stockBajo
-                                                            ? 'text-red-600'
-                                                            : 'text-teal-700'
-                                                    }`}
-                                                >
-                                                    {producto.stock}
-                                                </span>
-
-                                                <span >
-                                                    {producto.unidad?.simbolo}
-                                                </span>
-
-                                            </td>
-
-                                            {/* ACCIONES */}
-                                            <td>
-
-                                                <div>
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            openEditModal(
-                                                                producto
-                                                            )
-                                                        }
-                                                        
-                                                    >
-                                                        Editar
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            handleDelete(
-                                                                producto
-                                                            )
-                                                        }
-                                                        
-                                                    >
-                                                        Eliminar
-                                                    </button>
-
-                                                </div>
-
-                                            </td>
-
-                                        </tr>
-                                    );
-                                })}
-
-                            </tbod>
-
-                        </table>
-
-                    </div>
-
-                    {/* PAGINACIÓN */}
-                    {productos?.links?.length > 0 && (
-                        <div >
-
-                            {productos.links.map((link, index) => (
-                                <button
-                                    key={index}
-                                    type="button"
-                                    disabled={!link.url}
-                                    onClick={() => {
-                                        if (link.url) {
-                                            router.get(
-                                                link.url,
-                                                {},
-                                                {
-                                                    preserveState: true,
-                                                    preserveScroll: true,
-                                                }
-                                            );
-                                        }
-                                    }}
-                                    dangerouslySetInnerHTML={{
-                                        __html: link.label,
-                                    }}
-                                    className={`rounded-lg px-3 py-1.5 text-sm ${
-                                        link.active
-                                            ? 'bg-teal-700 text-white'
-                                            : link.url
-                                                ? 'bg-stone-100 text-stone-700 hover:bg-amber-100'
-                                                : 'cursor-not-allowed bg-stone-50 text-stone-300'
-                                    }`}
-                                />
-                            ))}
-
+                    {/* FLASH */}
+                    {flash?.success && (
+                        <div className="mb-6 rounded-xl border border-[#0E7C86]/20 bg-[#DFF3EF] px-5 py-3.5 text-sm font-semibold text-[#0E7C86] shadow-sm">
+                            {flash.success}
                         </div>
                     )}
+
+                    {/* CONTENEDOR PRINCIPAL */}
+                    <div className="overflow-hidden rounded-2xl border border-[#F0E6C8] bg-white shadow-[0_10px_30px_-12px_rgba(120,100,50,0.25)]">
+
+                        {/* CABECERA */}
+                        <div className="px-6 pt-6 sm:px-8 sm:pt-7">
+
+                            <div className="flex flex-col gap-4 pb-5 sm:flex-row sm:items-start sm:justify-between">
+
+                                <div>
+                                    <h1 className="text-xl font-extrabold tracking-tight text-[#0E7C86] sm:text-2xl">
+                                        Productos Registrados
+                                    </h1>
+
+                                    <p className="mt-1 text-sm text-[#A3915F]">
+                                        Administra productos, precios, stock y códigos de barras.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={openCreateModal}
+                                    className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] px-7 py-3 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#E2650F]/25 transition hover:brightness-110 active:scale-[0.98]"
+                                >
+                                    Nuevo Producto
+                                </button>
+
+                            </div>
+
+                            {/* BUSCADOR */}
+                            <form
+                                onSubmit={handleSearch}
+                                className="flex flex-col gap-3 pb-5 sm:flex-row sm:items-center"
+                            >
+
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(e) =>
+                                        setSearch(e.target.value)
+                                    }
+                                    placeholder="Buscar por nombre o código de barras..."
+                                    className={inputClass + ' sm:max-w-md'}
+                                />
+
+                                <button
+                                    type="submit"
+                                    className="rounded-full border border-[#0E7C86] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-[#0E7C86] transition hover:bg-[#0E7C86] hover:text-white"
+                                >
+                                    Buscar
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                        {/* TABLA */}
+                        <div className="overflow-x-auto border-t border-[#F1EAD5]">
+
+                            <table className="min-w-full">
+
+                                <thead>
+                                    <tr className="border-b border-[#F1EAD5] bg-white">
+
+                                        <th className={thClass + ' sm:pl-8'}>
+                                            Código
+                                        </th>
+
+                                        <th className={thClass}>
+                                            Producto
+                                        </th>
+
+                                        <th className={thClass}>
+                                            Unidad
+                                        </th>
+
+                                        <th className={thClass}>
+                                            Tipo
+                                        </th>
+
+                                        <th className={thClass}>
+                                            P. Compra
+                                        </th>
+
+                                        <th className={thClass}>
+                                            P. Venta
+                                        </th>
+
+                                        <th className={thClass}>
+                                            Stock
+                                        </th>
+
+                                        <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-[#8A7A4E] sm:pr-8">
+                                            Acciones
+                                        </th>
+
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    {productos?.data?.length === 0 && (
+                                        <tr>
+                                            <td
+                                                colSpan={8}
+                                                className="px-8 py-12 text-center text-sm text-[#A3915F]"
+                                            >
+                                                No se encontraron productos.
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {productos?.data?.map((producto) => {
+
+                                        const stockBajo =
+                                            Number(producto.stock) <=
+                                            Number(producto.stock_minimo);
+
+                                        return (
+                                            <tr
+                                                key={producto.id}
+                                                className="border-b border-[#F1EAD5] transition-colors last:border-0 hover:bg-[#FFFBEF]"
+                                            >
+
+                                                {/* CÓDIGO */}
+                                                <td className="whitespace-nowrap px-6 py-5 sm:pl-8">
+
+                                                    {producto.codigo_barras ? (
+                                                        <span className="rounded-md bg-[#FDF8E7] px-2.5 py-1 font-mono text-xs font-semibold text-[#7A6A45]">
+                                                            {producto.codigo_barras}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs italic text-[#C4B68C]">
+                                                            Sin código
+                                                        </span>
+                                                    )}
+
+                                                </td>
+
+                                                {/* PRODUCTO */}
+                                                <td className="px-6 py-5 text-sm font-bold text-[#2F2A20]">
+                                                    {producto.nombre}
+                                                </td>
+
+                                                {/* UNIDAD */}
+                                                <td className="whitespace-nowrap px-6 py-5 text-sm text-[#7A6A45]">
+                                                    {producto.unidad?.nombre || '-'}
+                                                </td>
+
+                                                {/* TIPO */}
+                                                <td className="whitespace-nowrap px-6 py-5">
+
+                                                    <span
+                                                        className={`inline-flex rounded-md px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wider ${
+                                                            producto.es_granel
+                                                                ? 'bg-[#FDEEDC] text-[#C25E10]'
+                                                                : 'bg-[#DFF3EF] text-[#0E7C86]'
+                                                        }`}
+                                                    >
+                                                        {producto.es_granel
+                                                            ? 'Granel'
+                                                            : 'Unidad'}
+                                                    </span>
+
+                                                </td>
+
+                                                {/* PRECIO COMPRA */}
+                                                <td className="whitespace-nowrap px-6 py-5 text-sm text-[#7A6A45]">
+                                                    ${Number(
+                                                        producto.precio_compra
+                                                    ).toFixed(2)}
+                                                </td>
+
+                                                {/* PRECIO VENTA */}
+                                                <td className="whitespace-nowrap px-6 py-5 text-sm font-semibold text-[#2F2A20]">
+                                                    ${Number(
+                                                        producto.precio_venta
+                                                    ).toFixed(2)}
+                                                </td>
+
+                                                {/* STOCK */}
+                                                <td className="whitespace-nowrap px-6 py-5">
+
+                                                    <span
+                                                        className={`text-sm font-extrabold ${
+                                                            stockBajo
+                                                                ? 'text-[#D64545]'
+                                                                : 'text-[#0E7C86]'
+                                                        }`}
+                                                    >
+                                                        {producto.stock}
+                                                    </span>
+
+                                                    <span className="ml-1 text-xs text-[#B6A87E]">
+                                                        {producto.unidad?.simbolo}
+                                                    </span>
+
+                                                    {stockBajo && (
+                                                        <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-wider text-[#D64545]">
+                                                            Stock bajo
+                                                        </span>
+                                                    )}
+
+                                                </td>
+
+                                                {/* ACCIONES */}
+                                                <td className="whitespace-nowrap px-6 py-5 text-right sm:pr-8">
+
+                                                    <div className="flex items-center justify-end gap-5">
+
+                                                        <Tooltip text="Editar producto">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    openEditModal(
+                                                                        producto
+                                                                    )
+                                                                }
+                                                                className="cursor-pointer text-sm font-semibold text-[#0E7C86] transition hover:underline"
+                                                            >
+                                                                <Pencil size={20} color="#2563eb" />
+                                                            </button>
+                                                        </Tooltip>
+
+                                                        <Tooltip text="Eliminar producto">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleDelete(
+                                                                        producto
+                                                                    )
+                                                                }
+                                                                className="cursor-pointer text-sm font-semibold text-[#D64545] transition hover:underline"
+                                                            >
+                                                                <Trash size={20} color="#dc2626" />
+                                                            </button>
+                                                        </Tooltip>
+
+                                                    </div>
+
+                                                </td>
+
+                                            </tr>
+                                        );
+                                    })}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                        {/* PAGINACIÓN */}
+                        {productos?.links?.length > 3 && (
+                            <div className="flex flex-wrap items-center justify-center gap-1.5 border-t border-[#F1EAD5] px-6 py-5 sm:px-8">
+
+                                {productos.links.map((link, index) => (
+                                    <button
+                                        key={index}
+                                        type="button"
+                                        disabled={!link.url}
+                                        onClick={() => {
+                                            if (link.url) {
+                                                router.get(
+                                                    link.url,
+                                                    {},
+                                                    {
+                                                        preserveState: true,
+                                                        preserveScroll: true,
+                                                    }
+                                                );
+                                            }
+                                        }}
+                                        dangerouslySetInnerHTML={{
+                                            __html: link.label,
+                                        }}
+                                        className={`min-w-[38px] rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                                            link.active
+                                                ? 'bg-[#0E7C86] text-white shadow-sm'
+                                                : link.url
+                                                    ? 'text-[#7A6A45] hover:bg-[#FDF8E7] hover:text-[#0E7C86]'
+                                                    : 'cursor-not-allowed text-[#D6CBA8]'
+                                        }`}
+                                    />
+                                ))}
+
+                            </div>
+                        )}
+
+                    </div>
 
                 </div>
 
@@ -514,28 +554,29 @@ export default function Index({
             ========================================================= */}
 
             {showModal && (
-                <div>
+                <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
 
                     {/* FONDO */}
                     <div
-                             onClick={closeModal}
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={closeModal}
                     />
 
                     {/* MODAL */}
-                    <div >
+                    <div className="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#F0E6C8] bg-white shadow-2xl">
 
                         {/* CABECERA */}
-                        <div>
+                        <div className="flex items-start justify-between gap-4 border-b border-[#F1EAD5] bg-[#FDF8E7] px-7 py-5">
 
                             <div>
 
-                                <h2 >
+                                <h2 className="text-lg font-extrabold text-[#0E7C86]">
                                     {editingProducto
                                         ? 'Editar Producto'
                                         : 'Nuevo Producto'}
                                 </h2>
 
-                                <p >
+                                <p className="mt-0.5 text-xs text-[#A3915F]">
                                     {editingProducto
                                         ? 'Modifica la información del producto.'
                                         : 'Registra un nuevo producto en el sistema.'}
@@ -546,7 +587,7 @@ export default function Index({
                             <button
                                 type="button"
                                 onClick={closeModal}
-                                
+                                className="flex h-9 w-9 items-center justify-center rounded-full text-2xl leading-none text-[#A3915F] transition hover:bg-white hover:text-[#D64545]"
                             >
                                 ×
                             </button>
@@ -556,14 +597,15 @@ export default function Index({
                         {/* FORMULARIO */}
                         <form
                             onSubmit={handleSubmit}
-                          >
+                            className="grid grid-cols-1 gap-5 px-7 py-6 sm:grid-cols-2"
+                        >
 
                             {/* CÓDIGO DE BARRAS */}
                             <div className="sm:col-span-2">
 
                                 <label
                                     htmlFor="codigo_barras"
-                                    className="mb-1 block text-sm font-medium text-stone-700"
+                                    className={labelClass}
                                 >
                                     Código de barras
                                 </label>
@@ -585,21 +627,21 @@ export default function Index({
                                             handleBarcodeKeyDown
                                         }
                                         placeholder="Escanea o escribe el código de barras..."
-                                        className="w-full rounded-lg border border-stone-300 px-3 py-2 font-mono outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600"
+                                        className={inputClass + ' font-mono'}
                                     />
 
-                                    <span className="flex items-center rounded-lg bg-stone-100 px-3 text-xs font-semibold text-stone-500">
-                                        SCAN
+                                    <span className="flex items-center rounded-lg bg-[#DFF3EF] px-4 text-[11px] font-extrabold uppercase tracking-wider text-[#0E7C86]">
+                                        Scan
                                     </span>
 
                                 </div>
 
-                                <p className="mt-1 text-xs text-stone-400">
+                                <p className="mt-1.5 text-xs text-[#B6A87E]">
                                     Puedes utilizar un lector USB de código de barras.
                                 </p>
 
                                 {errors.codigo_barras && (
-                                    <p className="mt-1 text-sm text-red-600">
+                                    <p className={errorClass}>
                                         {errors.codigo_barras}
                                     </p>
                                 )}
@@ -611,7 +653,7 @@ export default function Index({
 
                                 <label
                                     htmlFor="nombre"
-                                    className="mb-1 block text-sm font-medium text-stone-700"
+                                    className={labelClass}
                                 >
                                     Nombre del producto
                                 </label>
@@ -627,11 +669,11 @@ export default function Index({
                                         )
                                     }
                                     placeholder="Ej: Arroz"
-                                    className="w-full rounded-lg border border-stone-300 px-3 py-2 outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600"
+                                    className={inputClass}
                                 />
 
                                 {errors.nombre && (
-                                    <p className="mt-1 text-sm text-red-600">
+                                    <p className={errorClass}>
                                         {errors.nombre}
                                     </p>
                                 )}
@@ -643,7 +685,7 @@ export default function Index({
 
                                 <label
                                     htmlFor="unidad_id"
-                                    className="mb-1 block text-sm font-medium text-stone-700"
+                                    className={labelClass}
                                 >
                                     Unidad de medida
                                 </label>
@@ -657,7 +699,8 @@ export default function Index({
                                             e.target.value
                                         )
                                     }
-                                        >
+                                    className={inputClass}
+                                >
 
                                     <option value="">
                                         Selecciona una unidad
@@ -675,7 +718,7 @@ export default function Index({
                                 </select>
 
                                 {errors.unidad_id && (
-                                    <p className="mt-1 text-sm text-red-600">
+                                    <p className={errorClass}>
                                         {errors.unidad_id}
                                     </p>
                                 )}
@@ -687,7 +730,7 @@ export default function Index({
 
                                 <label
                                     htmlFor="es_granel"
-                                    className="mb-1 block text-sm font-medium text-stone-700"
+                                    className={labelClass}
                                 >
                                     Tipo de venta
                                 </label>
@@ -705,7 +748,7 @@ export default function Index({
                                             e.target.value === '1'
                                         )
                                     }
-                                    className="w-full rounded-lg border border-stone-300 px-3 py-2 outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600"
+                                    className={inputClass}
                                 >
                                     <option value="1">
                                         Granel
@@ -717,7 +760,7 @@ export default function Index({
                                 </select>
 
                                 {errors.es_granel && (
-                                    <p className="mt-1 text-sm text-red-600">
+                                    <p className={errorClass}>
                                         {errors.es_granel}
                                     </p>
                                 )}
@@ -729,7 +772,7 @@ export default function Index({
 
                                 <label
                                     htmlFor="precio_compra"
-                                    className="mb-1 block text-sm font-medium text-stone-700"
+                                    className={labelClass}
                                 >
                                     Precio de compra
                                 </label>
@@ -747,11 +790,11 @@ export default function Index({
                                         )
                                     }
                                     placeholder="0.00"
-                                    className="w-full rounded-lg border border-stone-300 px-3 py-2 outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600"
+                                    className={inputClass}
                                 />
 
                                 {errors.precio_compra && (
-                                    <p className="mt-1 text-sm text-red-600">
+                                    <p className={errorClass}>
                                         {errors.precio_compra}
                                     </p>
                                 )}
@@ -763,7 +806,7 @@ export default function Index({
 
                                 <label
                                     htmlFor="precio_venta"
-                                    className="mb-1 block text-sm font-medium text-stone-700"
+                                    className={labelClass}
                                 >
                                     Precio de venta
                                 </label>
@@ -781,11 +824,11 @@ export default function Index({
                                         )
                                     }
                                     placeholder="0.00"
-                                    className="w-full rounded-lg border border-stone-300 px-3 py-2 outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600"
+                                    className={inputClass}
                                 />
 
                                 {errors.precio_venta && (
-                                    <p className="mt-1 text-sm text-red-600">
+                                    <p className={errorClass}>
                                         {errors.precio_venta}
                                     </p>
                                 )}
@@ -797,13 +840,13 @@ export default function Index({
 
                                 <label
                                     htmlFor="stock"
-                                    className="mb-1 block text-sm font-medium text-stone-700"
+                                    className={labelClass}
                                 >
                                     Stock inicial
                                 </label>
 
                                 <input
-                                    disabled={editingProducto}
+                                    disabled={Boolean(editingProducto)}
                                     id="stock"
                                     type="number"
                                     step="0.001"
@@ -815,10 +858,17 @@ export default function Index({
                                             e.target.value
                                         )
                                     }
-                                     />
+                                    className={inputClass}
+                                />
+
+                                {editingProducto && (
+                                    <p className="mt-1.5 text-xs text-[#B6A87E]">
+                                        El stock se ajusta desde movimientos de inventario.
+                                    </p>
+                                )}
 
                                 {errors.stock && (
-                                    <p className="mt-1 text-sm text-red-600">
+                                    <p className={errorClass}>
                                         {errors.stock}
                                     </p>
                                 )}
@@ -830,7 +880,7 @@ export default function Index({
 
                                 <label
                                     htmlFor="stock_minimo"
-                                    className="mb-1 block text-sm font-medium text-stone-700"
+                                    className={labelClass}
                                 >
                                     Stock mínimo
                                 </label>
@@ -847,11 +897,11 @@ export default function Index({
                                             e.target.value
                                         )
                                     }
-                                    className="w-full rounded-lg border border-stone-300 px-3 py-2 outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600"
+                                    className={inputClass}
                                 />
 
                                 {errors.stock_minimo && (
-                                    <p className="mt-1 text-sm text-red-600">
+                                    <p className={errorClass}>
                                         {errors.stock_minimo}
                                     </p>
                                 )}
@@ -859,12 +909,12 @@ export default function Index({
                             </div>
 
                             {/* BOTONES */}
-                            <div className="flex justify-end gap-3 pt-2 sm:col-span-2">
+                            <div className="mt-3 flex flex-col-reverse gap-3 border-t border-[#F1EAD5] pt-5 sm:col-span-2 sm:flex-row sm:justify-end">
 
                                 <button
                                     type="button"
                                     onClick={closeModal}
-                                    className="rounded-lg border border-stone-300 px-5 py-2 text-stone-700 hover:bg-stone-50"
+                                    className="rounded-full border border-[#E5DCC0] px-7 py-3 text-xs font-bold uppercase tracking-wider text-[#7A6A45] transition hover:bg-[#FDF8E7]"
                                 >
                                     Cancelar
                                 </button>
@@ -872,7 +922,7 @@ export default function Index({
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="rounded-lg bg-orange-600 px-5 py-2 font-semibold text-white hover:bg-orange-700 disabled:opacity-50"
+                                    className="rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] px-7 py-3 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#E2650F]/25 transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {processing
                                         ? 'Guardando...'

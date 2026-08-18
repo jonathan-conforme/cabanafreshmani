@@ -1,6 +1,6 @@
-import Dropdown from '@/Components/Dropdown';
+import { Transition } from '@headlessui/react';
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { route } from "ziggy-js";
 
 export default function AuthenticatedLayout({ header, children }) {
@@ -38,6 +38,32 @@ export default function AuthenticatedLayout({ header, children }) {
     };
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
+    const [showingUserMenu, setShowingUserMenu] = useState(false);
+    const userMenuRef = useRef(null);
+
+    useEffect(() => {
+        if (!showingUserMenu) return;
+
+        const handleClickOutside = (event) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+                setShowingUserMenu(false);
+            }
+        };
+
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                setShowingUserMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [showingUserMenu]);
 
     const navItems = [
         {
@@ -237,55 +263,84 @@ export default function AuthenticatedLayout({ header, children }) {
                 </nav>
 
                 {/* Usuario */}
-                <div className="border-t border-white/10 p-3">
-                    <Dropdown>
-                        <Dropdown.Trigger>
-                            <button
-                                type="button"
-                                className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/5"
-                            >
-                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-teal-700 text-sm font-bold text-white">
-                                    {user.name?.charAt(0).toUpperCase()}
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                    <span className="block truncate text-sm font-semibold text-white">
-                                        {user.name}
-                                    </span>
-                                    {currentRole && (
-                                        <span
-                                            className={`mt-0.5 inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${badgeConfig.bg}`}
-                                        >
-                                            {badgeConfig.label}
-                                        </span>
-                                    )}
-                                </span>
-                                <svg
-                                    className="h-4 w-4 shrink-0 text-stone-400"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
+                <div ref={userMenuRef} className="relative border-t border-white/10 p-3">
+                    <button
+                        type="button"
+                        onClick={() => setShowingUserMenu((prev) => !prev)}
+                        aria-haspopup="true"
+                        aria-expanded={showingUserMenu}
+                        className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/5"
+                    >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-teal-700 text-sm font-bold text-white">
+                            {user.name?.charAt(0).toUpperCase()}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold text-white">
+                                {user.name}
+                            </span>
+                            {currentRole && (
+                                <span
+                                    className={`mt-0.5 inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${badgeConfig.bg}`}
                                 >
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
-                            </button>
-                        </Dropdown.Trigger>
+                                    {badgeConfig.label}
+                                </span>
+                            )}
+                        </span>
+                        <svg
+                            className={`h-4 w-4 shrink-0 text-stone-400 transition-transform duration-200 ${showingUserMenu ? 'rotate-180' : ''
+                                }`}
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                        >
+                            <path
+                                fillRule="evenodd"
+                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                clipRule="evenodd"
+                            />
+                        </svg>
+                    </button>
 
-                        <Dropdown.Content>
-                            <Dropdown.Link href={route('profile.edit')}>
+                    <Transition
+                        show={showingUserMenu}
+                        enter="transition ease-out duration-150"
+                        enterFrom="opacity-0 translate-y-1"
+                        enterTo="opacity-100 translate-y-0"
+                        leave="transition ease-in duration-100"
+                        leaveFrom="opacity-100 translate-y-0"
+                        leaveTo="opacity-0 translate-y-1"
+                    >
+                        <div className="absolute bottom-full left-0 right-0 z-50 mx-2 mb-2 overflow-hidden rounded-xl border border-stone-200 bg-white p-1.5 shadow-lg">
+                            <Link
+                                href={route('profile.edit')}
+                                onClick={() => setShowingUserMenu(false)}
+                                className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-stone-700 transition hover:bg-amber-50 hover:text-[#1c1210]"
+                            >
+                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                    </svg>
+                                </span>
                                 Perfil
-                            </Dropdown.Link>
-                            <Dropdown.Link
+                            </Link>
+
+                            <div className="my-1 border-t border-stone-100" />
+
+                            <Link
                                 href={route('logout')}
                                 method="post"
                                 as="button"
+                                onClick={() => setShowingUserMenu(false)}
+                                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-start text-sm text-red-600 transition hover:bg-red-50 hover:text-red-700"
                             >
+                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3H21" />
+                                    </svg>
+                                </span>
                                 Cerrar Sesión
-                            </Dropdown.Link>
-                        </Dropdown.Content>
-                    </Dropdown>
+                            </Link>
+                        </div>
+                    </Transition>
                 </div>
             </aside>
 
