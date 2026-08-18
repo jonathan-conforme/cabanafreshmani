@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Users, ShieldCheck, ShoppingBag, Utensils, Pencil, Trash, Key } from 'lucide-react';
+import Tooltip from '@/Components/Tooltip';
+import { confirmDelete, passwordResetAlert, successAlert } from '@/Components/SweetAlert';
 
-export default function Index({ users = [], roles = [] }) {
+
+export default function Index({
+    users = [],
+    roles = [],
+}) {
     const { flash } = usePage().props;
 
     const [showModal, setShowModal] = useState(false);
@@ -138,11 +145,12 @@ export default function Index({ users = [], roles = [] }) {
     |--------------------------------------------------------------------------
     */
 
-    const handleDelete = (user) => {
+    const handleDelete = async (user) => {
         if (
-            !confirm(
-                `¿Estás seguro de eliminar al empleado "${user.name}"?`
-            )
+            !(await confirmDelete(
+                'Esta acción no se puede deshacer.',
+                `¿Eliminar al empleado "${user.name}"?`
+            ))
         ) {
             return;
         }
@@ -158,39 +166,67 @@ export default function Index({ users = [], roles = [] }) {
     |--------------------------------------------------------------------------
     */
 
-    const handleResetPassword = (user) => {
-        const password = prompt(
-            `Nueva contraseña para ${user.name}:`
-        );
+    const handleResetPassword = async (user) => {
+        const result = await passwordResetAlert(user.name);
 
-        if (!password) {
-            return;
-        }
-
-        const confirmation = prompt(
-            'Confirma la nueva contraseña:'
-        );
-
-        if (!confirmation) {
-            return;
-        }
-
-        if (password !== confirmation) {
-            alert('Las contraseñas no coinciden.');
+        if (!result) {
             return;
         }
 
         router.put(
             route('users.reset-password', user.id),
             {
-                password: password,
-                password_confirmation: confirmation,
+                password: result.password,
+                password_confirmation: result.password_confirmation,
             },
             {
                 preserveScroll: true,
+                onSuccess: () => {
+                    successAlert('Contraseña restablecida correctamente.');
+                },
             }
         );
     };
+
+    /*
+    |--------------------------------------------------------------------------
+    | TARJETAS DE RESUMEN
+    |--------------------------------------------------------------------------
+    */
+
+    const contarPorRol = (nombreRol) =>
+        users.filter((user) =>
+            (user.roles ?? []).some(
+                (role) => role.name === nombreRol
+            )
+        ).length;
+
+    const resumenCards = [
+        {
+            label: 'Total Empleados',
+            value: users.length,
+            color: '#6D5DD3',
+            Icon: Users,
+        },
+        {
+            label: 'Administradores',
+            value: contarPorRol('administrador'),
+            color: '#1E9EE0',
+            Icon: ShieldCheck,
+        },
+        {
+            label: 'Vendedores',
+            value: contarPorRol('vendedor'),
+            color: '#B23CC9',
+            Icon: ShoppingBag,
+        },
+        {
+            label: 'Vendedor Fritada',
+            value: contarPorRol('vendedor_fritada'),
+            color: '#1AA65E',
+            Icon: Utensils,
+        },
+    ];
 
     return (
         <AuthenticatedLayout
@@ -213,6 +249,49 @@ export default function Index({ users = [], roles = [] }) {
                         {flash.success}
                     </div>
                 )}
+
+                {/* =====================================================
+                    TARJETAS DE RESUMEN
+                ====================================================== */}
+
+                <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+                    {resumenCards.map((card) => (
+                        <div
+                            key={card.label}
+                            className="rounded-2xl border-t-4 bg-white px-5 py-4 shadow-sm"
+                            style={{ borderTopColor: card.color }}
+                        >
+                            <div className="flex items-start justify-between">
+
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-wide text-stone-400">
+                                        {card.label}
+                                    </p>
+
+                                    <p className="mt-2 text-2xl font-extrabold text-stone-800">
+                                        {card.value}
+                                    </p>
+                                </div>
+
+                                <span
+                                    className="flex h-10 w-10 items-center justify-center rounded-full"
+                                    style={{
+                                        backgroundColor: `${card.color}1A`,
+                                        color: card.color,
+                                    }}
+                                >
+                                    <card.Icon
+                                        size={20}
+                                        strokeWidth={2.25}
+                                    />
+                                </span>
+
+                            </div>
+                        </div>
+                    ))}
+
+                </div>
 
                 {/* =====================================================
                     CONTENEDOR PRINCIPAL
@@ -252,7 +331,7 @@ export default function Index({ users = [], roles = [] }) {
 
                     <div className="overflow-x-auto">
 
-                        <table className="w-full min-w-[950px] text-left text-sm">
+                        <table className="w-full min-w-[950px] text-center text-sm">
 
                             <thead>
                                 <tr className="bg-amber-50/60 text-xs font-extrabold uppercase tracking-wide text-stone-500">
@@ -273,7 +352,7 @@ export default function Index({ users = [], roles = [] }) {
                                         Fecha de alta
                                     </th>
 
-                                    <th className="px-5 py-3 text-right sm:px-7">
+                                    <th className="px-5 py-3 text-center sm:px-7">
                                         Acciones
                                     </th>
 
@@ -351,39 +430,45 @@ export default function Index({ users = [], roles = [] }) {
 
                                                 {/* EDITAR */}
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        openEditModal(user)
-                                                    }
-                                                    className="rounded-lg px-3 py-1.5 text-sm font-semibold text-teal-600 transition hover:bg-teal-50"
-                                                >
-                                                    Editar
-                                                </button>
+                                                <Tooltip text="Editar empleado">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            openEditModal(user)
+                                                        }
+                                                        className="cursor-pointer rounded-lg px-3 py-1.5 text-sm font-semibold text-teal-600 transition hover:bg-teal-50"
+                                                    >
+                                                        <Pencil size={20} color="#2563eb" />
+                                                    </button>
+                                                </Tooltip>
 
                                                 {/* RESTABLECER CONTRASEÑA */}
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleResetPassword(user)
-                                                    }
-                                                    className="rounded-lg px-3 py-1.5 text-sm font-semibold text-amber-600 transition hover:bg-amber-50"
-                                                >
-                                                    Restablecer contraseña
-                                                </button>
+                                                <Tooltip text="Restablecer contraseña">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleResetPassword(user)
+                                                        }
+                                                        className="cursor-pointer rounded-lg px-3 py-1.5 text-sm font-semibold text-amber-600 transition hover:bg-amber-50"
+                                                    >
+                                                        <Key size={20} color="#d97706" />
+                                                    </button>
+                                                </Tooltip>
 
                                                 {/* ELIMINAR */}
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleDelete(user)
-                                                    }
-                                                    className="rounded-lg px-3 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                                                >
-                                                    Eliminar
-                                                </button>
+                                                <Tooltip text="Eliminar empleado">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleDelete(user)
+                                                        }
+                                                        className="cursor-pointer rounded-lg px-3 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                                                    >
+                                                        <Trash size={20} color="#dc2626" />
+                                                    </button>
+                                                </Tooltip>
 
                                             </div>
 
@@ -692,6 +777,6 @@ export default function Index({ users = [], roles = [] }) {
                 </div>
             )}
         </AuthenticatedLayout>
-        
+
     );
 }
