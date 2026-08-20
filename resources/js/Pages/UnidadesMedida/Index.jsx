@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { confirmDelete } from '@/Components/SweetAlert';
 
 export default function Index({ unidades, filters }) {
     // =========================================================
@@ -75,10 +76,11 @@ export default function Index({ unidades, filters }) {
         });
     };
 
-    const handleDelete = (unidad) => {
+    const handleDelete = async (unidad) => {
         if (
-            confirm(
-                `¿Estás seguro de eliminar la unidad "${unidad.nombre}"?`
+            await confirmDelete(
+                'Esta acción no se puede deshacer.',
+                `¿Eliminar la unidad "${unidad.nombre}"?`
             )
         ) {
             router.delete(
@@ -388,7 +390,7 @@ export default function Index({ unidades, filters }) {
                                                     onClick={() =>
                                                         openEditModal(unidad)
                                                     }
-
+                                                    className="cursor-pointer"
                                                 >
                                                     Editar
                                                 </button>
@@ -398,7 +400,7 @@ export default function Index({ unidades, filters }) {
                                                     onClick={() =>
                                                         handleDelete(unidad)
                                                     }
-
+                                                    className="cursor-pointer"
                                                 >
                                                     Eliminar
                                                 </button>
