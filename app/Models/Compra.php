@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-
 class Compra extends BaseModel
 {
     use HasFactory;
@@ -44,5 +43,16 @@ class Compra extends BaseModel
     public function detalles()
     {
         return $this->hasMany(CompraDetalle::class);
+    }
+
+    public function pagos()
+    {
+        return $this->hasMany(PagoCompra::class);
+    }
+
+    // Atributo útil para saber cuánto falta por pagar
+    public function getSaldoPendienteAttribute()
+    {
+        return $this->total - $this->monto_pagado;
     }
 }

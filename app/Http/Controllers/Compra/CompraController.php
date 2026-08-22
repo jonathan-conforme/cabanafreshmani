@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers\Compra;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\Compra\StoreCompraRequest;
-use App\Models\Compra;
-use App\Models\Producto;
-use App\Models\Proveedor;
+use Illuminate\Support\Facades\Storage;
 use App\Services\Compra\CompraService;
 use Illuminate\Http\RedirectResponse;
-use Inertia\Inertia;
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\Proveedor;
+use App\Models\Producto;
+use App\Models\Compra;
 use Inertia\Response;
+use Inertia\Inertia;
 
 class CompraController extends Controller
 {
@@ -28,7 +30,7 @@ class CompraController extends Controller
             ])
                 ->latest()
                 ->paginate(15),
-                'proveedores' => Proveedor::orderBy('nombre')->get(),
+            'proveedores' => Proveedor::orderBy('nombre')->get(),
 
             'productos' => Producto::with('unidad')
                 ->orderBy('nombre')
@@ -78,4 +80,31 @@ class CompraController extends Controller
             ]
         );
     }
+
+    public function registrarPago(Request $request, Compra $compra): RedirectResponse
+    {
+        $saldoPendiente = $compra->total - $compra->monto_pagado;
+
+        $validated = $request->validate([
+            'monto' => ['required', 'numeric', 'gt:0', 'max:'.$saldoPendiente],
+            'metodo_pago' => ['required', 'in:efectivo,transferencia'],
+            'fecha_pago' => ['nullable', 'date'],
+            'observacion' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $this->compraService->registrarPago($compra, $validated);
+
+        return back()->with('info', 'Abono registrado correctamente.');
+    }
+
+    public function destroy(Compra $compra)
+{
+    try {
+        $this->compraService->deletePurchase($compra);
+
+        return redirect()->route('compras.index')->with('success', 'Compra e inventario revertidos con éxito.');
+    } catch (\Throwable $e) {
+        return redirect()->back()->with('error', 'Error al eliminar: ' . $e->getMessage());
+    }
+}
 }
