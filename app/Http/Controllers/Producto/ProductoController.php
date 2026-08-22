@@ -21,28 +21,34 @@ class ProductoController extends Controller
     public function index(Request $request): Response
     {
         $productos = Producto::with('unidad')
-            ->when(
-                $request->search,
-                function ($query, $search) {
-                    $query
-                        ->where('nombre', 'like', "%{$search}%")
-                        ->orWhere(
-                            'codigo_barras',
-                            'like',
-                            "%{$search}%"
-                        );
-                }
-            )
+            ->when($request->search, function ($query, $search) {
+                $query->where('nombre', 'like', "%{$search}%")
+                    ->orWhere('codigo_barras', 'like', "%{$search}%");
+            })
+            ->when($request->boolean('solo_stock_bajo'), function ($query) {
+                $query->stockBajo();
+            })
             ->latest()
-            ->paginate(10)
+            ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('Productos/Index', [
             'productos' => $productos,
             'unidades' => UnidadMedida::orderBy('nombre')->get(),
-            'filters' => [
-                'search' => $request->search,
-            ],
+            'total_stock_bajo' => Producto::stockBajo()->count(), // Conteo para alerta visual global
+            'filters' => $request->only(['search', 'solo_stock_bajo']),
+        ]);
+    }
+
+    public function kardex(Producto $producto): Response
+    {
+        $movimientos = $producto->movimientos()
+            ->with(['user:id,name', 'origen'])
+            ->paginate(15);
+
+        return Inertia::render('Productos/Kardex', [
+            'producto' => $producto->load('unidad'),
+            'movimientos' => $movimientos,
         ]);
     }
 
@@ -77,15 +83,33 @@ class ProductoController extends Controller
             );
     }
 
-    public function destroy(Producto $producto): RedirectResponse
+    // Método para el switch/toggle
+    public function toggleEstado(Producto $producto): RedirectResponse
     {
-        $this->productoService->delete($producto);
+        $productoActualizado = $this->productoService->toggleEstado($producto);
+
+        $mensaje = $productoActualizado->activo
+            ? 'Producto activado exitosamente.'
+            : 'Producto inactivado exitosamente.';
 
         return redirect()
-            ->route('productos.index')
-            ->with(
-                'success',
-                'Producto eliminado exitosamente.'
-            );
+            ->back()
+            ->with('success', $mensaje);
+    }
+
+    // Borrado directo con mensaje explicativo si falla por restricción de BD
+    public function destroy(Producto $producto): RedirectResponse
+    {
+        try {
+            $this->productoService->delete($producto);
+
+            return redirect()
+                ->route('productos.index')
+                ->with('success', 'Producto eliminado exitosamente.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'No se puede eliminar el producto porque tiene historial registrado. Desactívalo mediante el switch.');
+        }
     }
 }

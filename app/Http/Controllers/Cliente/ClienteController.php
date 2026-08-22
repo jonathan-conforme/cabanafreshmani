@@ -75,4 +75,14 @@ class ClienteController extends Controller
             ->route('clientes.index')
             ->with('success', 'Cliente eliminado con éxito.');
     }
+
+    public function storeExpress(\App\Http\Requests\Cliente\ClienteExpressRequest $request)
+    {
+        $cliente = $this->clienteService->create($request->validated());
+
+        return response()->json([
+            'success' => true,
+            'cliente' => $cliente,
+        ]);
+    }
 }
