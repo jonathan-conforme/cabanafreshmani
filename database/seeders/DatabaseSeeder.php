@@ -42,7 +42,6 @@ class DatabaseSeeder extends Seeder
 
         $this->call(ProveedorSeeder::class);
         $this->call(ClienteSeeder::class);
-        $this->call(UnidadMedidaSeeder::class);
         $this->call([UnidadMedidaSeeder::class,ProductoSeeder::class,
 ]);
     }

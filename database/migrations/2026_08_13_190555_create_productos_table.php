@@ -19,8 +19,9 @@ return new class extends Migration
             $table->boolean('es_granel')->default(true);
             $table->decimal('precio_compra', 10, 2)->default(0.00);
             $table->decimal('precio_venta', 10, 2);
-            $table->decimal('stock', 10, 3)->default(0.000);
             $table->decimal('stock_minimo', 10, 3)->default(0.000);
+            $table->decimal('stock', 10, 3)->default(0.000);
+            $table->boolean('activo')->default(true);
             $table->timestamps();
 
             // Índice compuesto para alertas veloces de reabastecimiento (stock bajo)
