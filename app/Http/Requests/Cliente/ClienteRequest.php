@@ -22,10 +22,11 @@ class ClienteRequest extends FormRequest
             'identificacion' => [
                 'nullable',
                 'string',
-                'max:20',
+                'regex:/^[0-9]+$/', // Exige que contenga exclusivamente números
+                'max:13',
                 Rule::unique('clientes', 'identificacion')->ignore($clienteId),
             ],
-            'telefono' => ['nullable', 'string', 'max:20'],
+            'telefono' => ['nullable', 'string','regex:/^[0-9]+$/', 'max:20'],
             'email' => ['nullable', 'email', 'max:255'],
             'limite_credito' => ['nullable', 'numeric', 'min:0'],
         ];

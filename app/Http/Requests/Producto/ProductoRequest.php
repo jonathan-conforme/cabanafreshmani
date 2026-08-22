@@ -65,6 +65,10 @@ class ProductoRequest extends FormRequest
                 'numeric',
                 'min:0',
             ],
+            
+            'activo' => [
+                'sometimes',
+                'boolean'],
         ];
     }
 }

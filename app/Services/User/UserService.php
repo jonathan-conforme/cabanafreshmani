@@ -22,6 +22,10 @@ class UserService
 
             $user->assignRole($data['role']);
 
+            if (!empty($data['permissions'])) {
+                $user->syncPermissions($data['permissions']);
+            }
+
             return $user;
         });
     }
@@ -38,6 +42,8 @@ class UserService
             ]);
 
             $user->syncRoles($data['role']);
+            // Sincroniza permisos directos 
+            $user->syncPermissions($data['permissions'] ?? []);
 
             return $user->fresh();
         });
