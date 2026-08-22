@@ -12,8 +12,13 @@ return new class extends Migration
         Schema::create('movimientos_inventario', function (Blueprint $table) {
             $table->id();
             $table->foreignId('producto_id')->constrained('productos')->onDelete('cascade');
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
             $table->enum('tipo', ['venta', 'compra', 'ajuste', 'merma']);
             $table->decimal('cantidad', 10, 3); // Positivo (entrada) o Negativo (salida)
+            $table->decimal('stock_anterior', 10, 3);
+            $table->decimal('stock_nuevo', 10, 3);
+            $table->decimal('costo_unitario', 10, 2)->default(0.00);
+            $table->nullableMorphs('origen');
             $table->string('descripcion')->nullable();
             $table->timestamps();
 
