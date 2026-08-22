@@ -15,9 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->decimal('monto_apertura', 10, 2);
-            $table->decimal('monto_cierre', 10, 2)->nullable();
-            $table->decimal('monto_esperado', 10, 2)->nullable();
+            $table->decimal('monto_cierre', 10, 2)->nullable(); // Arqueo físico ingresado por usuario
+            $table->decimal('monto_esperado', 10, 2)->nullable();// Apertura + Ventas en efectivo
+            $table->decimal('diferencia', 10, 2)->nullable();// Sobrante (+) o Faltante (-)
             $table->enum('estado', ['abierta', 'cerrada'])->default('abierta');
+            $table->text('observaciones')->nullable();
             $table->timestamp('fecha_apertura')->useCurrent();
             $table->timestamp('fecha_cierre')->nullable();
             $table->timestamps();
