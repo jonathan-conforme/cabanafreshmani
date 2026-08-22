@@ -23,6 +23,7 @@ class RolePermissionSeeder extends Seeder
             'ver_productos',
             'ver_compras',
             'ver_kardex',
+            'ver_reportes',
             'usar_pos',
             'gestionar_caja',
         ];
