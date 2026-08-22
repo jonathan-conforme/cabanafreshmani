@@ -1,10 +1,13 @@
 import { Transition } from '@headlessui/react';
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from '@/Components/SweetAlert';
 import { route } from "ziggy-js";
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
+    const { total_stock_bajo } = usePage().props;
+    const { flash } = usePage().props;
 
     // 1. Manejo seguro de roles y permisos
     const roles = user?.roles || [];
@@ -41,6 +44,9 @@ export default function AuthenticatedLayout({ header, children }) {
     const [showingUserMenu, setShowingUserMenu] = useState(false);
     const userMenuRef = useRef(null);
 
+    // ---------------------------------------------------------
+    // 1. ESCUCHADOR DEL MENÚ DE USUARIO (CLICK OUTSIDE Y ESC)
+    // ---------------------------------------------------------
     useEffect(() => {
         if (!showingUserMenu) return;
 
@@ -65,6 +71,24 @@ export default function AuthenticatedLayout({ header, children }) {
         };
     }, [showingUserMenu]);
 
+    // ---------------------------------------------------------
+    // 2. ESCUCHADOR GLOBAL DE NOTIFICACIONES TOAST (SEPARADO)
+    // ---------------------------------------------------------
+    useEffect(() => {
+        if (flash?.success) {
+            toast(flash.success, 'success');
+        }
+        if (flash?.error) {
+            toast(flash.error, 'error');
+        }
+        if (flash?.info) {
+            toast(flash.info, 'info');
+        }
+        if (flash?.warning) {
+            toast(flash.warning, 'warning');
+        }
+    }, [flash]);
+
     const navItems = [
         {
             key: 'dashboard',
@@ -79,11 +103,23 @@ export default function AuthenticatedLayout({ header, children }) {
             ),
         },
         {
-            key: 'ventas',
-            href: '#',
-            active: route().current('ventas.*'),
-            label: 'Ventas',
-            show: hasAnyRole(['vendedor', 'vendedor_fritada', 'administrador']),
+            key: 'caja',
+            href: route('cajas.apertura'),
+            active: route().current('cajas.*'),
+            label: 'Control de Caja',
+            show: can('gestionar_caja') || hasRole('administrador'),
+            icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM12 6v6l4 2" />
+                </svg>
+            ),
+        },
+        {
+            key: 'pos',
+            href: route('pos.index'),
+            active: route().current('pos.*') || route().current('ventas.*'),
+            label: 'POS Ventas',
+            show: can('usar_pos') || hasRole('administrador'),
             icon: (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.836l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 1.994-4.708 2.6-7.19a1.125 1.125 0 00-1.11-1.36H5.106M7.5 14.25L5.106 5.106M7.5 14.25L6 20.25m9-6l1.5 6M9 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm9 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
@@ -95,7 +131,7 @@ export default function AuthenticatedLayout({ header, children }) {
             href: route('users.index'),
             active: route().current('users.*'),
             label: 'Usuarios',
-            show: hasRole('administrador'),
+            show: can('ver_usuarios') || hasRole('administrador'),
             icon: (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
@@ -107,7 +143,7 @@ export default function AuthenticatedLayout({ header, children }) {
             href: route('clientes.create'),
             active: route().current('clientes.*'),
             label: 'Clientes',
-            show: hasRole('administrador'),
+            show: can('ver_clientes') || hasRole('administrador'),
             icon: (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
@@ -119,57 +155,79 @@ export default function AuthenticatedLayout({ header, children }) {
             href: route('proveedores.index'),
             active: route().current('proveedores.*'),
             label: 'Proveedores',
-            show: hasRole('administrador'),
+            show: can('ver_proveedores') || hasRole('administrador'),
             icon: (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-8.673v8.673m0 0h-12" />
                 </svg>
             ),
         },
-      {
-    key: 'productos',
-    href: route('productos.index'),
-    active: route().current('productos.*'),
-    label: 'Productos',
-    show: hasAnyRole(['administrador']),
-    icon: (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.6}
-            className="h-5 w-5"
-        >
-            <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M20 7.5L12 3 4 7.5m16 0L12 12 4 7.5M20 7.5V16.5L12 21 4 16.5V7.5M12 12V21"
-            />
-        </svg>
-    ),
-},
- {
-    key: 'Compras',
-    href: route('compras.index'),
-    active: route().current('compras.*'),
-    label: 'Compras',
-    show: hasAnyRole(['administrador']),
-    icon: (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.6}
-            className="h-5 w-5"
-        >
-            <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M20 7.5L12 3 4 7.5m16 0L12 12 4 7.5M20 7.5V16.5L12 21 4 16.5V7.5M12 12V21"
-            />
-        </svg>
-    ),
-},
+        {
+            key: 'productos',
+            href: route('productos.index'),
+            active: route().current('productos.*'),
+            label: 'Productos',
+            show: can('ver_productos') || hasRole('administrador'),
+            icon: (
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.6}
+                    className="h-5 w-5"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M20 7.5L12 3 4 7.5m16 0L12 12 4 7.5M20 7.5V16.5L12 21 4 16.5V7.5M12 12V21"
+                    />
+                </svg>
+            ),
+        },
+        {
+            key: 'Compras',
+            href: route('compras.index'),
+            active: route().current('compras.*'),
+            label: 'Compras',
+            show: can('ver_compras') || hasRole('administrador'),
+            icon: (
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.6}
+                    className="h-5 w-5"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M20 7.5L12 3 4 7.5m16 0L12 12 4 7.5M20 7.5V16.5L12 21 4 16.5V7.5M12 12V21"
+                    />
+                </svg>
+            ),
+        },
+        {
+            key: 'kardex',
+            href: route('kardex.index'),
+            active: route().current('kardex.*'),
+            label: 'Kardex / Movimientos',
+            show: can('ver_kardex') || hasRole('administrador'),
+            icon: (
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.6}
+                    className="h-5 w-5"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                </svg>
+            ),
+        },
     ];
 
     return (
@@ -242,14 +300,14 @@ export default function AuthenticatedLayout({ header, children }) {
                                 href={item.href}
                                 aria-current={item.active ? 'page' : undefined}
                                 className={`group flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm font-semibold transition ${item.active
-                                        ? 'bg-gradient-to-br from-orange-500 to-[#c85a0a] text-white shadow-lg shadow-orange-900/40'
-                                        : 'text-[#e7d3ac] hover:bg-white/5 hover:text-white'
+                                    ? 'bg-gradient-to-br from-orange-500 to-[#c85a0a] text-white shadow-lg shadow-orange-900/40'
+                                    : 'text-[#e7d3ac] hover:bg-white/5 hover:text-white'
                                     }`}
                             >
                                 <span
                                     className={`flex h-8 w-8 items-center justify-center rounded-full transition ${item.active
-                                            ? 'bg-white/20 text-white'
-                                            : 'bg-white/10 text-amber-400 group-hover:text-amber-300'
+                                        ? 'bg-white/20 text-white'
+                                        : 'bg-white/10 text-amber-400 group-hover:text-amber-300'
                                         }`}
                                 >
                                     {item.icon}
