@@ -8,7 +8,7 @@ export default function Index({ unidades, filters }) {
     // NO MODIFICAR ESTA LÓGICA
     // =========================================================
 
-    const { flash } = usePage().props;
+ 
 
     const [showModal, setShowModal] = useState(false);
     const [editingUnidad, setEditingUnidad] = useState(null);
@@ -118,23 +118,7 @@ export default function Index({ unidades, filters }) {
 
             <div >
 
-                {/* =================================================
-                    MENSAJE DE ÉXITO
-                ================================================= */}
 
-                {flash?.success && (
-                    <div >
-                        <div >
-                            <span >
-                                ✓
-                            </span>
-
-                            <p >
-                                {flash.success}
-                            </p>
-                        </div>
-                    </div>
-                )}
 
                 {/* =================================================
                     CARD PRINCIPAL
