@@ -3,6 +3,7 @@
 use App\Http\Controllers\UnidadMedida\UnidadMedidaController;
 use App\Http\Controllers\Proveedor\ProveedorController;
 use App\Http\Controllers\Producto\ProductoController;
+use App\Http\Controllers\Reporte\ReporteController;
 use App\Http\Controllers\Inventario\KardexController;
 use App\Http\Controllers\Cliente\ClienteController;
 use App\Http\Controllers\Compra\CompraController;
@@ -78,6 +79,11 @@ Route::middleware('auth')->group(function () {
     // Kardex
     Route::middleware('can:ver_kardex')->group(function () {
         Route::get('kardex', [KardexController::class, 'index'])->name('kardex.index');
+    });
+
+    // Reportes
+    Route::middleware('can:ver_reportes')->group(function () {
+        Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
     });
 });
 

@@ -1,9 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { confirmDelete } from '@/Components/SweetAlert';
 import Tooltip from '@/Components/Tooltip';
 import { Pencil, Trash } from 'lucide-react';
+
+/*
+|--------------------------------------------------------------------------
+| TARJETA DE STOCK DISPONIBLE
+|--------------------------------------------------------------------------
+*/
+function StockCard({ nombre, stock, minimo, unidad = '' }) {
+    const bajo = Number(stock) <= Number(minimo);
+    const tope = Number(minimo) * 4 || 1;
+    const pct = Math.max(6, Math.min(100, (Number(stock) / tope) * 100));
+    const fill = bajo ? '#D64545' : '#5B7A3A';
+
+    return (
+        <div className="rounded-2xl border border-[#EFE7D2] bg-[#FFFDF7] p-5">
+            <div className="flex items-start justify-between gap-2">
+                <h3 className="text-sm font-bold text-[#2F2A20]">{nombre}</h3>
+                <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                        bajo ? 'bg-[#F8DEDE] text-[#D64545]' : 'bg-[#E7EFD8] text-[#5B7A3A]'
+                    }`}
+                >
+                    {bajo ? 'Stock bajo' : 'Normal'}
+                </span>
+            </div>
+
+            <p className="mt-2 font-serif text-3xl font-bold text-[#2F2A20]">
+                {Number(stock).toFixed(1)} <span className="text-lg">{unidad}</span>
+            </p>
+
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#EDE6D3]">
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: fill }} />
+            </div>
+
+            <p className="mt-2 text-xs text-[#A3915F]">
+                Mínimo recomendado: {Number(minimo).toFixed(1)} {unidad}
+            </p>
+        </div>
+    );
+}
 
 export default function Index({
     productos,
@@ -15,6 +54,36 @@ export default function Index({
     const [showModal, setShowModal] = useState(false);
     const [editingProducto, setEditingProducto] = useState(null);
     const [search, setSearch] = useState(filters?.search || '');
+    const [stockTab, setStockTab] = useState('disponible');
+
+    /*
+    |--------------------------------------------------------------------------
+    | BÚSQUEDA EN TIEMPO REAL (con debounce)
+    |--------------------------------------------------------------------------
+    */
+    const primeraCarga = useRef(true);
+
+    useEffect(() => {
+        // Evita disparar una petición al montar el componente
+        if (primeraCarga.current) {
+            primeraCarga.current = false;
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            router.get(
+                route('productos.index'),
+                { search },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                }
+            );
+        }, 350);
+
+        return () => clearTimeout(timer);
+    }, [search]);
 
     const {
         data,
@@ -264,9 +333,55 @@ export default function Index({
 
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
+                    {/* PESTAÑAS */}
+                    <div className="mb-6 flex items-center gap-6 border-b border-[#F1EAD5]">
+                        <button
+                            type="button"
+                            onClick={() => setStockTab('disponible')}
+                            className={`-mb-px border-b-2 pb-3 text-sm font-bold transition ${
+                                stockTab === 'disponible'
+                                    ? 'border-[#E2650F] text-[#2F2A20]'
+                                    : 'border-transparent text-[#A3915F] hover:text-[#7A6A45]'
+                            }`}
+                        >
+                            Stock disponible
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setStockTab('historial')}
+                            className={`-mb-px border-b-2 pb-3 text-sm font-bold transition ${
+                                stockTab === 'historial'
+                                    ? 'border-[#E2650F] text-[#2F2A20]'
+                                    : 'border-transparent text-[#A3915F] hover:text-[#7A6A45]'
+                            }`}
+                        >
+                            Productos Registrados
+                        </button>
+                    </div>
 
+                    {/* PESTAÑA: STOCK DISPONIBLE (tarjetas) */}
+                    {stockTab === 'disponible' && (
+                        productos?.data?.length ? (
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {productos.data.map((producto) => (
+                                    <StockCard
+                                        key={producto.id}
+                                        nombre={producto.nombre}
+                                        stock={producto.stock}
+                                        minimo={producto.stock_minimo}
+                                        unidad={producto.unidad?.simbolo || producto.unidad?.nombre || ''}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl border border-[#F0E6C8] bg-white py-12 text-center text-sm text-[#A3915F]">
+                                No hay productos para mostrar.
+                            </div>
+                        )
+                    )}
 
-                    {/* CONTENEDOR PRINCIPAL */}
+                    {/* PESTAÑA: HISTORIAL DE MOVIMIENTOS (Productos Registrados) */}
+                    {stockTab === 'historial' && (
                     <div className="overflow-hidden rounded-2xl border border-[#F0E6C8] bg-white shadow-[0_10px_30px_-12px_rgba(120,100,50,0.25)]">
 
                         {/* CABECERA */}
@@ -575,6 +690,7 @@ export default function Index({
                         )}
 
                     </div>
+                    )}
 
                 </div>
 
