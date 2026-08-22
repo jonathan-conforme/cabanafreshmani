@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreignId('cliente_id')->nullable()->constrained('clientes')->onDelete('set null');
             $table->foreignId('caja_id')->constrained('cajas')->onDelete('restrict');
             $table->decimal('total', 10, 2);
+            $table->decimal('pago_con', 10, 2)->nullable();
+            $table->decimal('vuelto', 10, 2)->default(0);
             $table->enum('metodo_pago', ['efectivo', 'tarjeta', 'transferencia', 'credito'])->default('efectivo');
             $table->enum('estado', ['completada', 'pendiente', 'cancelada'])->default('completada');
             $table->timestamps();
