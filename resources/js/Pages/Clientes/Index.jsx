@@ -7,7 +7,7 @@ import { Pencil, Trash } from 'lucide-react';
 
 export default function Index({ clientes, filters }) {
 
-    const { flash, errors } = usePage().props;
+    const { errors } = usePage().props;
 
     const [search, setSearch] = useState(filters?.search || '');
     const [showModal, setShowModal] = useState(false);
@@ -185,11 +185,6 @@ export default function Index({ clientes, filters }) {
                         MENSAJE SUCCESS
                     ========================= */}
 
-                    {flash?.success && (
-                        <div className="mb-6 rounded-xl border border-[#0E7C86]/20 bg-[#DFF3EF] px-5 py-3.5 text-sm font-semibold text-[#0E7C86] shadow-sm">
-                            {flash.success}
-                        </div>
-                    )}
 
                     {/* =========================
                         TARJETA PRINCIPAL

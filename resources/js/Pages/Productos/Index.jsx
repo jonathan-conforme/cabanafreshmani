@@ -10,7 +10,7 @@ export default function Index({
     unidades = [],
     filters = {},
 }) {
-    const { flash } = usePage().props;
+
 
     const [showModal, setShowModal] = useState(false);
     const [editingProducto, setEditingProducto] = useState(null);
@@ -33,7 +33,23 @@ export default function Index({
         precio_venta: '',
         stock: '0',
         stock_minimo: '0',
+        activo: true,
     });
+
+   /*
+    |--------------------------------------------------------------------------
+    | CAMBIAR ESTADO (TOGGLE)
+    |--------------------------------------------------------------------------
+    */
+    const handleToggleEstado = (producto) => {
+        router.patch(
+            route('productos.toggleEstado', producto.id),
+            {},
+            {
+                preserveScroll: true,
+            }
+        );
+    };
 
     /*
     |--------------------------------------------------------------------------
@@ -248,12 +264,7 @@ export default function Index({
 
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-                    {/* FLASH */}
-                    {flash?.success && (
-                        <div className="mb-6 rounded-xl border border-[#0E7C86]/20 bg-[#DFF3EF] px-5 py-3.5 text-sm font-semibold text-[#0E7C86] shadow-sm">
-                            {flash.success}
-                        </div>
-                    )}
+
 
                     {/* CONTENEDOR PRINCIPAL */}
                     <div className="overflow-hidden rounded-2xl border border-[#F0E6C8] bg-white shadow-[0_10px_30px_-12px_rgba(120,100,50,0.25)]">
@@ -345,6 +356,8 @@ export default function Index({
                                         <th className={thClass}>
                                             Stock
                                         </th>
+                                        
+                                        <th className={thClass}>Estado</th>
 
                                         <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-[#8A7A4E] sm:pr-8">
                                             Acciones
@@ -457,6 +470,24 @@ export default function Index({
                                                         </span>
                                                     )}
 
+                                                </td>
+                                                {/* ESTADO (SWITCH / TOGGLE) */}
+                                                <td className="whitespace-nowrap px-6 py-5">
+                                                    <Tooltip text={producto.activo ? 'Desactivar producto' : 'Activar producto'}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleToggleEstado(producto)}
+                                                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                                                producto.activo ? 'bg-[#0E7C86]' : 'bg-gray-300'
+                                                            }`}
+                                                        >
+                                                            <span
+                                                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                                                    producto.activo ? 'translate-x-5' : 'translate-x-0'
+                                                                }`}
+                                                            />
+                                                        </button>
+                                                    </Tooltip>
                                                 </td>
 
                                                 {/* ACCIONES */}
