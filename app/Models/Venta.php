@@ -15,9 +15,16 @@ class Venta extends BaseModel
         'user_id',
         'cliente_id',
         'metodo_pago',
-        'subtotal',
-        'descuento',
+        'estado',
         'total',
+        'pago_con',
+        'vuelto',
+    ];
+
+    protected $casts = [
+        'total' => 'decimal:2',
+        'pago_con' => 'decimal:2',
+        'vuelto' => 'decimal:2',
     ];
 
     public function caja()

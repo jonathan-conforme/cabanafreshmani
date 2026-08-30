@@ -23,3 +23,12 @@ createInertiaApp({
         color: '#4B5563',
     },
 });
+
+// Registro del Service Worker (PWA) — solo en producción para no interferir con Vite HMR.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {
+            /* si falla el registro, la app sigue funcionando normal */
+        });
+    });
+}

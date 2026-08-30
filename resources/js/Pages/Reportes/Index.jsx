@@ -10,6 +10,8 @@ import {
     Wallet,
     Receipt,
     Landmark,
+    HandCoins,
+    Users,
 } from 'lucide-react';
 
 const TABS = [
@@ -18,6 +20,7 @@ const TABS = [
     { key: 'inventario', label: 'Inventario', icon: Boxes },
     { key: 'productos', label: 'Más Vendidos', icon: Trophy },
     { key: 'caja', label: 'Cierre de Caja', icon: Landmark },
+    { key: 'cuentas_cobrar', label: 'Cuentas por Cobrar', icon: HandCoins },
 ];
 
 const money = (value) => `$${Number(value || 0).toFixed(2)}`;
@@ -125,6 +128,8 @@ export default function Index({
     productos = [],
     porUsuario = [],
     cierresCaja = { data: [], links: [] },
+    porCliente = [],
+    ventasCredito = { data: [], links: [] },
 }) {
     const [desde, setDesde] = useState(filtros.desde || '');
     const [hasta, setHasta] = useState(filtros.hasta || '');
@@ -568,6 +573,87 @@ export default function Index({
                                     </table>
                                 </div>
                                 <Pagination links={cierresCaja?.links} />
+                            </div>
+                        </>
+                    )}
+
+                    {/* ===================== CUENTAS POR COBRAR ===================== */}
+                    {tipo === 'cuentas_cobrar' && (
+                        <>
+                            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
+                                <StatCard label="Total por Cobrar" value={money(totales?.total)} Icon={HandCoins} color="#E2650F" />
+                                <StatCard label="Ventas a Credito" value={totales?.cantidad ?? 0} Icon={Receipt} color="#0E7C86" />
+                                <StatCard label="Clientes con Deuda" value={totales?.clientes ?? 0} Icon={Users} color="#6D5DD3" />
+                                <StatCard label="Deuda Promedio" value={money(totales?.promedio)} Icon={TrendingUp} color="#1AA65E" />
+                            </div>
+
+                            <div className="mb-6 rounded-2xl border border-[#F0E6C8] bg-white p-6 shadow-sm">
+                                <h2 className="mb-4 font-bold text-[#0E7C86]">Deuda por Cliente</h2>
+                                <BarList items={porCliente} labelKey="nombre" valueKey="total" countKey="cantidad" />
+                            </div>
+
+                            <div className={cardClass}>
+                                <div className="border-b border-[#F1EAD5] bg-gradient-to-br from-[#FDF8E7] to-white px-6 py-5">
+                                    <h2 className="font-bold text-[#0E7C86]">Detalle de Cuentas por Cobrar</h2>
+                                    <p className="mt-1 text-sm text-[#A3915F]">
+                                        Ventas a credito registradas en el rango de fechas seleccionado.
+                                    </p>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full">
+                                        <thead>
+                                            <tr className="border-b border-[#F1EAD5] bg-white">
+                                                <th className={thClass + ' sm:pl-8'}>Venta</th>
+                                                <th className={thClass}>Fecha</th>
+                                                <th className={thClass}>Cliente</th>
+                                                <th className={thClass}>Identificacion</th>
+                                                <th className={thClass}>Telefono</th>
+                                                <th className={thClass}>Vendedor</th>
+                                                <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-[#8A7A4E] sm:pr-8">
+                                                    Monto Adeudado
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {ventasCredito?.data?.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={7} className="px-8 py-12 text-center text-sm text-[#A3915F]">
+                                                        No hay ventas a credito en este rango de fechas.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {ventasCredito?.data?.map((venta) => (
+                                                <tr
+                                                    key={venta.id}
+                                                    className="border-b border-[#F1EAD5] transition-colors last:border-0 hover:bg-[#FFFBEF]"
+                                                >
+                                                    <td className="whitespace-nowrap px-6 py-5 text-sm font-bold text-[#2F2A20] sm:pl-8">
+                                                        #{venta.id}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-6 py-5 text-sm text-[#A3915F]">
+                                                        {venta.created_at ? new Date(venta.created_at).toLocaleString('es-EC') : '-'}
+                                                    </td>
+                                                    <td className="px-6 py-5 text-sm text-[#2F2A20]">
+                                                        {venta.cliente
+                                                            ? `${venta.cliente.nombre || ''} ${venta.cliente.apellido || ''}`.trim()
+                                                            : 'Consumidor Final'}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-6 py-5 text-sm text-[#7A6A45]">
+                                                        {venta.cliente?.identificacion || '-'}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-6 py-5 text-sm text-[#7A6A45]">
+                                                        {venta.cliente?.telefono || '-'}
+                                                    </td>
+                                                    <td className="px-6 py-5 text-sm text-[#7A6A45]">{venta.user?.name || '-'}</td>
+                                                    <td className="whitespace-nowrap px-6 py-5 text-right text-sm font-extrabold text-[#E2650F] sm:pr-8">
+                                                        {money(venta.total)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <Pagination links={ventasCredito?.links} />
                             </div>
                         </>
                     )}

@@ -2,11 +2,11 @@ import { Transition } from '@headlessui/react';
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from '@/Components/SweetAlert';
+import NotificationBell from '@/Components/NotificationBell';
 import { route } from "ziggy-js";
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
-    const { total_stock_bajo } = usePage().props;
     const { flash } = usePage().props;
 
     // 1. Manejo seguro de roles y permisos
@@ -250,6 +250,18 @@ export default function AuthenticatedLayout({ header, children }) {
                 </svg>
             ),
         },
+        {
+            key: 'notificaciones',
+            href: route('notificaciones.index'),
+            active: route().current('notificaciones.*'),
+            label: 'Notificaciones',
+            show: can('ver_notificaciones') || hasRole('administrador'),
+            icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                </svg>
+            ),
+        },
     ];
 
     return (
@@ -264,20 +276,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     />
                 </Link>
                 <div className="flex items-center gap-1">
-                    <button
-                        type="button"
-                        className="relative rounded-md p-2 text-amber-100 transition hover:bg-white/10"
-                        aria-label="Notificaciones"
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-6 w-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                        </svg>
-                        {total_stock_bajo > 0 && (
-                            <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                                {total_stock_bajo}
-                            </span>
-                        )}
-                    </button>
+                    <NotificationBell variant="light" />
 
                     <button
                         onClick={() => setShowingNavigationDropdown((prev) => !prev)}
