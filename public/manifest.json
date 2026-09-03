@@ -1,0 +1,36 @@
+{
+    "name": "Cabaña Fresh Maní",
+    "short_name": "Cabaña Fresh",
+    "description": "Sistema POS de Cabaña Fresh Maní: ventas, inventario, compras, caja y reportes.",
+    "id": "/",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "display_override": ["standalone", "minimal-ui"],
+    "orientation": "any",
+    "lang": "es",
+    "dir": "ltr",
+    "background_color": "#FDF8E7",
+    "theme_color": "#44281a",
+    "categories": ["business", "productivity", "shopping"],
+    "icons": [
+        {
+            "src": "/pwa-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/pwa-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/pwa-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

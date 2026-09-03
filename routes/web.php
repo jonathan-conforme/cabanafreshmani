@@ -1,26 +1,28 @@
 <?php
 
-use App\Http\Controllers\UnidadMedida\UnidadMedidaController;
-use App\Http\Controllers\Proveedor\ProveedorController;
-use App\Http\Controllers\Producto\ProductoController;
-use App\Http\Controllers\Reporte\ReporteController;
-use App\Http\Controllers\Inventario\KardexController;
+use App\Http\Controllers\Caja\CajaController;
 use App\Http\Controllers\Cliente\ClienteController;
 use App\Http\Controllers\Compra\CompraController;
-use App\Http\Controllers\User\UserController;
-use App\Http\Controllers\Caja\CajaController;
+use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\ExportController;
+use App\Http\Controllers\Inventario\KardexController;
+use App\Http\Controllers\Notificacion\NotificacionController;
 use App\Http\Controllers\Pos\PosController;
-use App\Http\Controllers\Venta\VentaController;
+use App\Http\Controllers\Producto\ProductoController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Proveedor\ProveedorController;
+use App\Http\Controllers\Reporte\ReporteController;
+use App\Http\Controllers\UnidadMedida\UnidadMedidaController;
+use App\Http\Controllers\User\UserController;
+use App\Http\Controllers\Venta\VentaController;
 use App\Http\Middleware\CheckCajaAbierta;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::redirect('/', '/login');
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 // Rutas de Perfil (Autenticado genérico)
 Route::middleware('auth')->group(function () {
@@ -85,6 +87,26 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:ver_reportes')->group(function () {
         Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
     });
+
+    // Notificaciones (solo administración: los vendedores no las ven)
+    Route::middleware('can:ver_notificaciones')->group(function () {
+        Route::get('/notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
+        Route::patch('/notificaciones/leer-todas', [NotificacionController::class, 'marcarTodasLeidas'])->name('notificaciones.leerTodas');
+        Route::delete('/notificaciones/leidas', [NotificacionController::class, 'destroyLeidas'])->name('notificaciones.destroyLeidas');
+        Route::patch('/notificaciones/{notificacion}/leer', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leer');
+        Route::delete('/notificaciones/{notificacion}', [NotificacionController::class, 'destroy'])->name('notificaciones.destroy');
+    });
 });
+
+// ---------------------------------------------------------
+// EXPORTACION DE BASE DE DATOS (solo administrador)
+// ---------------------------------------------------------
+Route::get('/admin/export', [ExportController::class, 'index'])
+    ->middleware(['auth', 'role:administrador'])
+    ->name('export.index');
+
+Route::get('/export/descargar', [ExportController::class, 'descargar'])
+    ->middleware(['auth', 'role:administrador'])
+    ->name('export.descargar');
 
 require __DIR__.'/auth.php';

@@ -24,6 +24,7 @@ class RolePermissionSeeder extends Seeder
             'ver_compras',
             'ver_kardex',
             'ver_reportes',
+            'ver_notificaciones',
             'usar_pos',
             'gestionar_caja',
         ];

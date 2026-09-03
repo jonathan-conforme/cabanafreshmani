@@ -8,6 +8,7 @@ use App\Models\MovimientoInventario;
 use App\Models\Producto;
 use App\Models\Venta;
 use App\Models\VentaDetalle;
+use Illuminate\Support\Facades\DB;
 
 class ReporteService
 {
@@ -133,6 +134,52 @@ class ReporteService
             ->get();
 
         return compact('productos');
+    }
+
+    /**
+     * Cuentas por cobrar: ventas a credito registradas en el rango.
+     * Se agrupan por cliente para ver a quien se le debe reclamar el dinero.
+     */
+    public function cuentasPorCobrar(array $filtros): array
+    {
+        [$desde, $hasta] = $this->rangoFechas($filtros);
+
+        $baseQuery = Venta::whereDate('ventas.created_at', '>=', $desde)
+            ->whereDate('ventas.created_at', '<=', $hasta)
+            ->where('ventas.metodo_pago', 'credito')
+            ->where('ventas.estado', 'completada');
+
+        $totales = (clone $baseQuery)
+            ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total, COALESCE(AVG(total), 0) as promedio')
+            ->first();
+
+        // Clientes distintos con deuda en el rango (incluye ventas sin cliente asignado).
+        $totales->clientes = (clone $baseQuery)
+            ->distinct()
+            ->count(DB::raw('COALESCE(cliente_id, 0)'));
+
+        $porCliente = (clone $baseQuery)
+            ->leftJoin('clientes', 'clientes.id', '=', 'ventas.cliente_id')
+            ->selectRaw("
+                clientes.id,
+                COALESCE(NULLIF(TRIM(CONCAT(COALESCE(clientes.nombre, ''), ' ', COALESCE(clientes.apellido, ''))), ''), 'Consumidor Final') as nombre,
+                clientes.identificacion,
+                clientes.telefono,
+                clientes.limite_credito,
+                COUNT(ventas.id) as cantidad,
+                SUM(ventas.total) as total
+            ")
+            ->groupBy('clientes.id', 'clientes.nombre', 'clientes.apellido', 'clientes.identificacion', 'clientes.telefono', 'clientes.limite_credito')
+            ->orderByDesc('total')
+            ->get();
+
+        $ventasCredito = (clone $baseQuery)
+            ->with(['user:id,name', 'cliente:id,nombre,apellido,identificacion,telefono'])
+            ->latest()
+            ->paginate(10, ['*'], 'page')
+            ->withQueryString();
+
+        return compact('totales', 'porCliente', 'ventasCredito');
     }
 
     public function historialCierresCaja(array $filtros): array

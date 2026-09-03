@@ -1,69 +1,42 @@
-import React, { useState } from 'react';
-import { Head, Link, usePage } from '@inertiajs/react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Transition } from '@headlessui/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import NotificationBell from '@/Components/NotificationBell';
 import {
-    Users,
     Wallet,
     TrendingUp,
-    FileText,
-    ArrowUp,
-    ArrowDown,
-    Bell,
+    BarChart3,
+    AlertTriangle,
     MoreHorizontal,
     Filter,
     ChevronDown,
 } from 'lucide-react';
 
+/** Cada cuántos segundos se vuelven a pedir los datos del dashboard. */
+const REFRESH_SECONDS = 30;
+
 /*
 |--------------------------------------------------------------------------
-| DATOS DE EJEMPLO (reemplázalos por props que envíe tu controlador)
+| Todos los datos llegan como props desde DashboardController.
+| Los valores por defecto sólo evitan que la vista reviente si llega vacía.
 |--------------------------------------------------------------------------
 */
-const DEFAULT_STATS = [
-    { label: 'Clientes', value: '1.456', delta: '+6,5%', up: true, color: '#6D5DD3', Icon: Users },
-    { label: 'Ingresos', value: '$3.345', delta: '-0,10%', up: false, color: '#1E9EE0', Icon: Wallet },
-    { label: 'Ganancia', value: '60%', delta: '-0,2%', up: false, color: '#B23CC9', Icon: TrendingUp },
-    { label: 'Facturas', value: '1.135', delta: '+11,5%', up: true, color: '#1AA65E', Icon: FileText },
-];
-
-const DEFAULT_INVOICES = {
-    total: '1.135',
-    segments: [
-        { label: 'Total Pagado', value: 234, color: '#0d9488' },  // teal-600
-        { label: 'Total Vencido', value: 514, color: '#ea580c' }, // orange-600
-        { label: 'Total Impago', value: 345, color: '#e7e5e4' },  // stone-200
-    ],
+const ICONS = {
+    wallet: Wallet,
+    trending: TrendingUp,
+    chart: BarChart3,
+    alert: AlertTriangle,
 };
 
-const DEFAULT_SALES = [
-    { month: 'Ene', value: 3800 },
-    { month: 'Feb', value: 4200 },
-    { month: 'Mar', value: 5200 },
-    { month: 'Abr', value: 5600 },
-    { month: 'May', value: 9500 },
-    { month: 'Jun', value: 5200 },
-    { month: 'Jul', value: 6200 },
-    { month: 'Ago', value: 5800 },
-    { month: 'Sep', value: 6100 },
-    { month: 'Oct', value: 6300 },
-    { month: 'Nov', value: 6200 },
-    { month: 'Dic', value: 4600 },
-];
-
-const DEFAULT_RECENT = [
-    { id: '#065499', name: 'Eren Yaeger', item: '1 x Black Backpack', date: '21/07/2022 08:21', status: 'Pagado', price: '$101' },
-    { id: '#065499', name: 'Levi Ackerman', item: '1 x Distro Backpack', date: '21/07/2022 08:21', status: 'Pendiente', price: '$144' },
-    { id: '#065499', name: 'Rainer Brown', item: '1 x New Backpack', date: '21/07/2022 08:21', status: 'Pagado', price: '$121' },
-    { id: '#065499', name: 'Historia Reiss', item: '2 x Black Backpack', date: '21/07/2022 08:21', status: 'Vencido', price: '$300' },
-];
-
 /*
 |--------------------------------------------------------------------------
-| TARJETA DE RESUMEN (mismo estilo que tu pantalla de Empleados)
+| TARJETA DE RESUMEN
 |--------------------------------------------------------------------------
 */
-function StatCard({ label, value, delta, up, color, Icon }) {
+function StatCard({ label, value, delta, up, hint, color, icon }) {
+    const Icon = ICONS[icon] ?? Wallet;
+
     return (
         <div className="rounded-2xl border-t-4 bg-white px-5 py-4 shadow-sm" style={{ borderTopColor: color }}>
             <div className="flex items-start justify-between">
@@ -79,11 +52,14 @@ function StatCard({ label, value, delta, up, color, Icon }) {
                 </span>
             </div>
             <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold">
-                <span className={up ? 'text-emerald-600' : 'text-rose-500'}>
-                    {up ? <ArrowUp size={13} /> : <ArrowDown size={13} />}
-                </span>
-                <span className={up ? 'text-emerald-600' : 'text-rose-500'}>{delta}</span>
-                <span className="font-medium text-stone-400">desde la semana pasada</span>
+                {delta ? (
+                    <>
+                        <span className={up ? 'text-emerald-600' : 'text-rose-500'}>{delta}</span>
+                        <span className="font-medium text-stone-400">vs. periodo anterior</span>
+                    </>
+                ) : (
+                    <span className="font-medium text-stone-400">{hint}</span>
+                )}
             </div>
         </div>
     );
@@ -125,7 +101,7 @@ function DonutChart({ segments, total }) {
             </svg>
             <div className="absolute flex flex-col items-center">
                 <span className="text-2xl font-extrabold text-stone-800">{total}</span>
-                <span className="text-sm text-stone-400">Facturas</span>
+                <span className="text-sm text-stone-400">Ventas</span>
             </div>
         </div>
     );
@@ -133,27 +109,36 @@ function DonutChart({ segments, total }) {
 
 /*
 |--------------------------------------------------------------------------
-| GRÁFICO DE LÍNEA (SVG puro + tooltip al pasar el mouse)
+| GRÁFICO DE LÍNEA (SVG puro, escala automática + tooltip al pasar el mouse)
 |--------------------------------------------------------------------------
 */
+function niceCeil(n) {
+    if (n <= 10) return 10;
+    const pow = Math.pow(10, Math.floor(Math.log10(n)));
+    return Math.ceil(n / pow) * pow;
+}
+
 function LineChart({ data }) {
     const [hover, setHover] = useState(null);
 
     const W = 720;
     const H = 300;
-    const padL = 40;
+    const padL = 48;
     const padR = 20;
     const padT = 24;
     const padB = 40;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
 
-    const max = 10000;
-    const min = 2000;
-    const yTicks = [2000, 4000, 6000, 8000, 10000];
+    const values = data.map((d) => d.value);
+    const max = niceCeil(Math.max(0, ...values));
+    const min = 0;
+    const yTicks = Array.from({ length: 5 }, (_, i) => (max / 4) * i);
 
-    const x = (i) => padL + (plotW / (data.length - 1)) * i;
-    const y = (v) => padT + plotH - ((v - min) / (max - min)) * plotH;
+    const x = (i) => (data.length <= 1 ? padL + plotW / 2 : padL + (plotW / (data.length - 1)) * i);
+    const y = (v) => padT + plotH - ((v - min) / (max - min || 1)) * plotH;
+
+    const fmtTick = (v) => (max >= 1000 ? `${Math.round(v / 100) / 10}k` : `${Math.round(v)}`);
 
     const linePath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(d.value)}`).join(' ');
     const areaPath = `${linePath} L ${x(data.length - 1)} ${padT + plotH} L ${x(0)} ${padT + plotH} Z`;
@@ -173,7 +158,7 @@ function LineChart({ data }) {
                     <g key={t}>
                         <line x1={padL} y1={y(t)} x2={W - padR} y2={y(t)} stroke="#f5f5f4" strokeWidth="1" />
                         <text x={padL - 10} y={y(t) + 4} textAnchor="end" className="fill-stone-300" fontSize="11">
-                            {t / 1000}k
+                            {fmtTick(t)}
                         </text>
                     </g>
                 ))}
@@ -197,7 +182,7 @@ function LineChart({ data }) {
 
                 {/* Puntos + zonas de hover + etiquetas del eje X */}
                 {data.map((d, i) => (
-                    <g key={d.month}>
+                    <g key={d.label}>
                         <circle
                             cx={x(i)}
                             cy={y(d.value)}
@@ -206,9 +191,11 @@ function LineChart({ data }) {
                             stroke="#0d9488"
                             strokeWidth="2.5"
                         />
-                        <text x={x(i)} y={H - 14} textAnchor="middle" className="fill-stone-400" fontSize="11">
-                            {d.month}
-                        </text>
+                        {(data.length <= 8 || i % 2 === 0) && (
+                            <text x={x(i)} y={H - 14} textAnchor="middle" className="fill-stone-400" fontSize="11">
+                                {d.label}
+                            </text>
+                        )}
                         <rect
                             x={x(i) - plotW / (data.length * 2)}
                             y={padT}
@@ -224,7 +211,7 @@ function LineChart({ data }) {
                 {/* Tooltip */}
                 {hover !== null && (
                     <g transform={`translate(${x(hover)}, ${y(data[hover].value) - 20})`}>
-                        <rect x="-42" y="-26" width="84" height="30" rx="8" fill="#1c1917" />
+                        <rect x="-52" y="-26" width="104" height="30" rx="8" fill="#1c1917" />
                         <text x="0" y="-6" textAnchor="middle" fill="#ffffff" fontSize="13" fontWeight="600">
                             ${data[hover].value.toLocaleString('es-EC')}
                         </text>
@@ -242,12 +229,16 @@ function LineChart({ data }) {
 */
 function StatusBadge({ status }) {
     const map = {
-        Pagado: 'bg-teal-50 text-teal-700',
+        Completada: 'bg-teal-50 text-teal-700',
         Pendiente: 'bg-amber-100 text-amber-800',
-        Vencido: 'bg-rose-50 text-rose-600',
+        Cancelada: 'bg-rose-50 text-rose-600',
     };
     return (
-        <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${map[status] || 'bg-stone-100 text-stone-500'}`}>
+        <span
+            className={`inline-block rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${
+                map[status] || 'bg-stone-100 text-stone-500'
+            }`}
+        >
             {status}
         </span>
     );
@@ -259,16 +250,54 @@ function StatusBadge({ status }) {
 |--------------------------------------------------------------------------
 */
 export default function Dashboard({
-    stats = DEFAULT_STATS,
-    invoices = DEFAULT_INVOICES,
-    sales = DEFAULT_SALES,
-    recent = DEFAULT_RECENT,
+    stats = [],
+    invoices = { total: 0, segments: [] },
+    sales = [],
+    recent = [],
 }) {
-    // Usuario autenticado (prop compartida por Inertia/Laravel)
     const { auth } = usePage().props;
     const userName = auth?.user?.name ?? 'Usuario';
 
     const [showingUserMenu, setShowingUserMenu] = useState(false);
+
+    /* ---- Auto-actualización en segundo plano (polling, sin UI) ---- */
+    const refreshingRef = useRef(false);
+
+    const refreshNow = useCallback(() => {
+        if (refreshingRef.current) return;
+        refreshingRef.current = true;
+
+        router.reload({
+            only: ['stats', 'invoices', 'sales', 'recent'],
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                refreshingRef.current = false;
+            },
+        });
+    }, []);
+
+    // Pide datos nuevos cada REFRESH_SECONDS, solo si la pestaña está visible.
+    useEffect(() => {
+        const id = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                refreshNow();
+            }
+        }, REFRESH_SECONDS * 1000);
+
+        return () => clearInterval(id);
+    }, [refreshNow]);
+
+    // Refresca al volver a la pestaña tras tenerla en segundo plano.
+    useEffect(() => {
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') {
+                refreshNow();
+            }
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
+    }, [refreshNow]);
 
     return (
         <AuthenticatedLayout>
@@ -283,9 +312,7 @@ export default function Dashboard({
 
                     {/* Se oculta en móvil: en el celular esto vive en la barra café y el sidebar */}
                     <div className="hidden items-center gap-4 lg:flex">
-                        <button className="text-stone-400 hover:text-teal-700" aria-label="Notificaciones">
-                            <Bell size={20} />
-                        </button>
+                        <NotificationBell />
                         {/* MENÚ DE USUARIO */}
                         <div className="relative">
                             <button
@@ -362,48 +389,64 @@ export default function Dashboard({
 
                 {/* DONA + LÍNEA */}
                 <div className="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-5">
-                    {/* Estadísticas de facturas */}
+                    {/* Ventas por método de pago */}
                     <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-amber-100 lg:col-span-2">
                         <div className="mb-4 flex items-center justify-between">
-                            <h2 className="font-bold text-teal-700">Estadísticas de Facturas</h2>
+                            <h2 className="font-bold text-teal-700">Ventas por Método de Pago</h2>
                             <MoreHorizontal size={20} className="text-stone-300" />
                         </div>
 
-                        <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
-                            <DonutChart segments={invoices.segments} total={invoices.total} />
-                            <div className="space-y-4">
-                                {invoices.segments.map((s) => (
-                                    <div key={s.label}>
-                                        <div className="flex items-center gap-2 text-sm text-stone-400">
-                                            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                                            {s.label}
+                        {invoices.segments.length === 0 ? (
+                            <p className="py-14 text-center text-sm text-stone-400">Sin ventas registradas este mes.</p>
+                        ) : (
+                            <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
+                                <DonutChart segments={invoices.segments} total={invoices.total} />
+                                <div className="space-y-4">
+                                    {invoices.segments.map((s) => (
+                                        <div key={s.label}>
+                                            <div className="flex items-center gap-2 text-sm text-stone-400">
+                                                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                                                {s.label}
+                                            </div>
+                                            <p className="ml-4 text-lg font-extrabold text-stone-800">
+                                                ${s.value.toLocaleString('es-EC')}
+                                                <span className="ml-1 text-xs font-medium text-stone-400">
+                                                    · {s.count}
+                                                </span>
+                                            </p>
                                         </div>
-                                        <p className="ml-4 text-lg font-extrabold text-stone-800">{s.value}</p>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Análisis de ventas */}
                     <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-amber-100 lg:col-span-3">
                         <div className="mb-4 flex items-center justify-between">
-                            <h2 className="font-bold text-teal-700">Análisis de Ventas</h2>
+                            <h2 className="font-bold text-teal-700">Ventas de los Últimos 14 Días</h2>
                             <MoreHorizontal size={20} className="text-stone-300" />
                         </div>
-                        <LineChart data={sales} />
+                        {sales.length === 0 ? (
+                            <p className="py-14 text-center text-sm text-stone-400">Sin datos de ventas.</p>
+                        ) : (
+                            <LineChart data={sales} />
+                        )}
                     </div>
                 </div>
 
-                {/* FACTURAS RECIENTES */}
+                {/* VENTAS RECIENTES */}
                 <div className="overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-amber-100">
                     <div className="flex items-center justify-between border-b border-amber-100 bg-gradient-to-br from-amber-50 to-white px-6 py-5">
-                        <h2 className="font-bold text-teal-700">Facturas Recientes</h2>
+                        <h2 className="font-bold text-teal-700">Ventas Recientes</h2>
                         <div className="flex items-center gap-3">
-                            <button className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-1.5 text-sm font-semibold text-stone-500 hover:bg-stone-50">
+                            <Link
+                                href={route('reportes.index')}
+                                className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-1.5 text-sm font-semibold text-stone-500 hover:bg-stone-50"
+                            >
                                 <Filter size={15} />
-                                Filtrar
-                            </button>
+                                Ver reportes
+                            </Link>
                             <MoreHorizontal size={20} className="text-stone-300" />
                         </div>
                     </div>
@@ -413,33 +456,42 @@ export default function Dashboard({
                             <thead>
                                 <tr className="bg-amber-50/60 text-xs font-extrabold uppercase tracking-wide text-stone-500">
                                     <th className="px-6 py-3">No</th>
-                                    <th className="px-6 py-3">Id Cliente</th>
-                                    <th className="px-6 py-3">Nombre del Cliente</th>
-                                    <th className="px-6 py-3">Artículo</th>
-                                    <th className="px-6 py-3">Fecha de Orden</th>
+                                    <th className="px-6 py-3">Venta</th>
+                                    <th className="px-6 py-3">Cliente</th>
+                                    <th className="px-6 py-3">Vendedor</th>
+                                    <th className="px-6 py-3">Artículos</th>
+                                    <th className="px-6 py-3">Fecha</th>
                                     <th className="px-6 py-3">Estado</th>
-                                    <th className="px-6 py-3 text-right">Precio</th>
+                                    <th className="px-6 py-3 text-right">Total</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-amber-100">
+                                {recent.length === 0 && (
+                                    <tr>
+                                        <td colSpan={8} className="px-6 py-12 text-center text-sm text-stone-400">
+                                            Aún no hay ventas registradas.
+                                        </td>
+                                    </tr>
+                                )}
                                 {recent.map((row, i) => (
-                                    <tr key={i} className="transition hover:bg-amber-50/40">
+                                    <tr key={row.id} className="transition hover:bg-amber-50/40">
                                         <td className="px-6 py-4 text-stone-400">{i + 1}</td>
-                                        <td className="px-6 py-4 font-semibold text-stone-500">{row.id}</td>
+                                        <td className="px-6 py-4 font-semibold text-stone-500">#{row.id}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700">
-                                                    {row.name.charAt(0)}
+                                                    {row.cliente.charAt(0)}
                                                 </span>
-                                                <span className="font-semibold text-stone-800">{row.name}</span>
+                                                <span className="font-semibold text-stone-800">{row.cliente}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-stone-500">{row.item}</td>
-                                        <td className="px-6 py-4 text-stone-500">{row.date}</td>
+                                        <td className="px-6 py-4 text-stone-500">{row.vendedor}</td>
+                                        <td className="px-6 py-4 text-stone-500">{row.items}</td>
+                                        <td className="px-6 py-4 text-stone-500">{row.fecha}</td>
                                         <td className="px-6 py-4">
-                                            <StatusBadge status={row.status} />
+                                            <StatusBadge status={row.estado} />
                                         </td>
-                                        <td className="px-6 py-4 text-right font-extrabold text-stone-800">{row.price}</td>
+                                        <td className="px-6 py-4 text-right font-extrabold text-stone-800">{row.total}</td>
                                     </tr>
                                 ))}
                             </tbody>

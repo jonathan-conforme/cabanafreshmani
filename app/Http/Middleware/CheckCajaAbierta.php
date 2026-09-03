@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Middleware;
 
 use App\Services\Caja\CajaService;
@@ -13,7 +14,7 @@ class CheckCajaAbierta
     {
         $caja = $this->cajaService->getCajaAbierta(auth()->id());
 
-        if (!$caja) {
+        if (! $caja) {
             return redirect()->route('cajas.apertura')
                 ->with('warning', 'Debes abrir caja antes de realizar ventas.');
         }

@@ -10,7 +10,7 @@ use Inertia\Response;
 
 class ReporteController extends Controller
 {
-    protected const TIPOS_VALIDOS = ['ventas', 'compras', 'inventario', 'productos', 'caja'];
+    protected const TIPOS_VALIDOS = ['ventas', 'compras', 'inventario', 'productos', 'caja', 'cuentas_cobrar'];
 
     public function __construct(
         protected ReporteService $reporteService
@@ -29,6 +29,7 @@ class ReporteController extends Controller
             'inventario' => $this->reporteService->resumenInventario($filtros),
             'productos' => $this->reporteService->productosMasVendidos($filtros),
             'caja' => $this->reporteService->historialCierresCaja($filtros),
+            'cuentas_cobrar' => $this->reporteService->cuentasPorCobrar($filtros),
             default => $this->reporteService->resumenVentas($filtros),
         };
 
