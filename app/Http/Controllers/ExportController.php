@@ -33,7 +33,9 @@ class ExportController extends Controller
                 'mensaje' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'No se pudo generar el backup: '.$e->getMessage());
+            // El detalle queda en el log: getMessage() aca filtraba rutas del
+            // servidor y errores de la base al navegador.
+            return back()->with('error', 'No se pudo generar el backup. Revisa el log del servidor.');
         }
 
         Log::info('Backup de base de datos descargado', [

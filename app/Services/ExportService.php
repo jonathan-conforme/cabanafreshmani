@@ -35,11 +35,15 @@ class ExportService
     ];
 
     /**
-     * Columnas que nunca salen del servidor: son credenciales de sesion vivas
-     * y no hacen falta para restaurar la base en local.
+     * Columnas que nunca salen del servidor. El backup viaja como JSON plano a
+     * la carpeta de descargas de quien lo pide, asi que no puede llevar
+     * credenciales: el hash bcrypt permite ataque offline de diccionario y el
+     * remember_token es una sesion viva reutilizable tal cual.
+     *
+     * Al restaurar, los usuarios quedan sin contrasena y hay que reasignarla.
      */
     protected const COLUMNAS_EXCLUIDAS = [
-        'users' => ['remember_token'],
+        'users' => ['password', 'remember_token'],
     ];
 
     protected const DIRECTORIO = 'backups';

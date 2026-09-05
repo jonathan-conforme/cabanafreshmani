@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Compra;
 
 use App\Http\Requests\Compra\StoreCompraRequest;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use App\Services\Compra\CompraService;
 use Illuminate\Http\RedirectResponse;
 use App\Http\Controllers\Controller;
@@ -104,7 +105,15 @@ class CompraController extends Controller
 
         return redirect()->route('compras.index')->with('success', 'Compra e inventario revertidos con éxito.');
     } catch (\Throwable $e) {
-        return redirect()->back()->with('error', 'Error al eliminar: ' . $e->getMessage());
+        // El detalle va al log, no al navegador: el mensaje crudo exponia
+        // rutas del servidor y errores de la base.
+        Log::error('Fallo al eliminar una compra', [
+            'compra_id' => $compra->id,
+            'user_id' => auth()->id(),
+            'mensaje' => $e->getMessage(),
+        ]);
+
+        return redirect()->back()->with('error', 'No se pudo eliminar la compra. Revisa el log del servidor.');
     }
 }
 }
