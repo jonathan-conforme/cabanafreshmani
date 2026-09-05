@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
+import ModalPagoCliente from './ModalPagoCliente';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import {
     TrendingUp,
@@ -22,7 +23,32 @@ const TABS = [
     { key: 'caja', label: 'Cierre de Caja', icon: Landmark },
     { key: 'cuentas_cobrar', label: 'Cuentas por Cobrar', icon: HandCoins },
 ];
+const handleSubmit = (e) => {
+        e.preventDefault();
 
+        post(route('ventas.pagos.store', venta.id), {
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const serverErrors = page.props.errors;
+                const flashError = page.props.flash?.error; // Captura si Laravel manda el aviso por flash
+
+                if (flashError || (serverErrors && Object.keys(serverErrors).length > 0)) {
+                    const mensajeError = flashError || serverErrors.monto || serverErrors.error || 'No tienes una caja abierta para registrar pagos.';
+
+                    warningAlert(mensajeError, 'Caja Cerrada');
+                } else {
+                    successAlert('Pago registrado correctamente.', '¡Éxito!');
+                    reset();
+                    onClose();
+                }
+            },
+            onError: (err) => {
+                const mensajeError = err.monto || err.error || 'No tienes una caja abierta para registrar pagos.';
+
+                warningAlert(mensajeError, 'Atención');
+            },
+        });
+    };
 const money = (value) => `$${Number(value || 0).toFixed(2)}`;
 
 function StatCard({ label, value, Icon, color = '#0E7C86' }) {
@@ -94,13 +120,12 @@ function Pagination({ links }) {
                         }
                     }}
                     dangerouslySetInnerHTML={{ __html: link.label }}
-                    className={`min-w-[38px] rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                        link.active
-                            ? 'bg-[#0E7C86] text-white shadow-sm'
-                            : link.url
-                              ? 'text-[#7A6A45] hover:bg-[#FDF8E7] hover:text-[#0E7C86]'
-                              : 'cursor-not-allowed text-[#D6CBA8]'
-                    }`}
+                    className={`min-w-[38px] rounded-lg px-3 py-2 text-sm font-semibold transition ${link.active
+                        ? 'bg-[#0E7C86] text-white shadow-sm'
+                        : link.url
+                            ? 'text-[#7A6A45] hover:bg-[#FDF8E7] hover:text-[#0E7C86]'
+                            : 'cursor-not-allowed text-[#D6CBA8]'
+                        }`}
                 />
             ))}
         </div>
@@ -134,6 +159,7 @@ export default function Index({
     const [desde, setDesde] = useState(filtros.desde || '');
     const [hasta, setHasta] = useState(filtros.hasta || '');
     const [limite, setLimite] = useState(filtros.limite || 15);
+    const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 
     const irA = (nuevoTipo, extra = {}) => {
         router.get(
@@ -173,11 +199,10 @@ export default function Index({
                                     key={t.key}
                                     type="button"
                                     onClick={() => irA(t.key)}
-                                    className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-extrabold uppercase tracking-wider transition ${
-                                        active
-                                            ? 'bg-gradient-to-r from-[#F08A24] to-[#E2650F] text-white shadow-lg shadow-[#E2650F]/25'
-                                            : 'border border-[#E5DCC0] bg-white text-[#7A6A45] hover:bg-[#FDF8E7]'
-                                    }`}
+                                    className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-extrabold uppercase tracking-wider transition ${active
+                                        ? 'bg-gradient-to-r from-[#F08A24] to-[#E2650F] text-white shadow-lg shadow-[#E2650F]/25'
+                                        : 'border border-[#E5DCC0] bg-white text-[#7A6A45] hover:bg-[#FDF8E7]'
+                                        }`}
                                 >
                                     <Icon size={15} />
                                     {t.label}
@@ -596,7 +621,7 @@ export default function Index({
                                 <div className="border-b border-[#F1EAD5] bg-gradient-to-br from-[#FDF8E7] to-white px-6 py-5">
                                     <h2 className="font-bold text-[#0E7C86]">Detalle de Cuentas por Cobrar</h2>
                                     <p className="mt-1 text-sm text-[#A3915F]">
-                                        Ventas a credito registradas en el rango de fechas seleccionado.
+                                        Estado de deudas, abonos realizados y saldos pendientes.
                                     </p>
                                 </div>
                                 <div className="overflow-x-auto">
@@ -606,50 +631,104 @@ export default function Index({
                                                 <th className={thClass + ' sm:pl-8'}>Venta</th>
                                                 <th className={thClass}>Fecha</th>
                                                 <th className={thClass}>Cliente</th>
-                                                <th className={thClass}>Identificacion</th>
-                                                <th className={thClass}>Telefono</th>
-                                                <th className={thClass}>Vendedor</th>
+                                                <th className={thClass}>Estado</th>
+                                                <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-[#8A7A4E]">
+                                                    Total Venta
+                                                </th>
+                                                <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-[#1AA65E]">
+                                                    Total Abonado
+                                                </th>
+                                                <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-[#E2650F]">
+                                                    Saldo Pendiente
+                                                </th>
                                                 <th className="px-6 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-[#8A7A4E] sm:pr-8">
-                                                    Monto Adeudado
+                                                    Acciones
                                                 </th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {ventasCredito?.data?.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={7} className="px-8 py-12 text-center text-sm text-[#A3915F]">
-                                                        No hay ventas a credito en este rango de fechas.
+                                                    <td colSpan={8} className="px-8 py-12 text-center text-sm text-[#A3915F]">
+                                                        No hay ventas a crédito registradas.
                                                     </td>
                                                 </tr>
                                             )}
-                                            {ventasCredito?.data?.map((venta) => (
-                                                <tr
-                                                    key={venta.id}
-                                                    className="border-b border-[#F1EAD5] transition-colors last:border-0 hover:bg-[#FFFBEF]"
-                                                >
-                                                    <td className="whitespace-nowrap px-6 py-5 text-sm font-bold text-[#2F2A20] sm:pl-8">
-                                                        #{venta.id}
-                                                    </td>
-                                                    <td className="whitespace-nowrap px-6 py-5 text-sm text-[#A3915F]">
-                                                        {venta.created_at ? new Date(venta.created_at).toLocaleString('es-EC') : '-'}
-                                                    </td>
-                                                    <td className="px-6 py-5 text-sm text-[#2F2A20]">
-                                                        {venta.cliente
-                                                            ? `${venta.cliente.nombre || ''} ${venta.cliente.apellido || ''}`.trim()
-                                                            : 'Consumidor Final'}
-                                                    </td>
-                                                    <td className="whitespace-nowrap px-6 py-5 text-sm text-[#7A6A45]">
-                                                        {venta.cliente?.identificacion || '-'}
-                                                    </td>
-                                                    <td className="whitespace-nowrap px-6 py-5 text-sm text-[#7A6A45]">
-                                                        {venta.cliente?.telefono || '-'}
-                                                    </td>
-                                                    <td className="px-6 py-5 text-sm text-[#7A6A45]">{venta.user?.name || '-'}</td>
-                                                    <td className="whitespace-nowrap px-6 py-5 text-right text-sm font-extrabold text-[#E2650F] sm:pr-8">
-                                                        {money(venta.total)}
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {ventasCredito?.data?.map((venta) => {
+                                                // Suma precisa de la tabla de pagos o del pago inicial
+                                                const totalAbonado = venta.pagos && venta.pagos.length > 0
+                                                    ? venta.pagos.reduce((acc, p) => acc + Number(p.monto || 0), 0)
+                                                    : Number(venta.pago_con || 0);
+
+                                                const totalVenta = Number(venta.total || 0);
+                                                const saldoCalculado = Math.max(0, totalVenta - totalAbonado);
+
+                                                // Evaluación estricta de saldo
+                                                const saldoPendiente = (venta.saldo_pendiente !== null && venta.saldo_pendiente !== undefined && Number(venta.saldo_pendiente) > 0)
+                                                    ? Number(venta.saldo_pendiente)
+                                                    : saldoCalculado;
+
+                                                const esCancelado = venta.estado === 'completada' || saldoPendiente <= 0;
+
+                                                return (
+                                                    <tr key={venta.id} className="border-b border-[#F1EAD5] transition-colors last:border-0 hover:bg-[#FFFBEF]">
+                                                        <td className="whitespace-nowrap px-6 py-5 text-sm font-bold text-[#2F2A20] sm:pl-8">
+                                                            #{venta.id}
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-5 text-sm text-[#A3915F]">
+                                                            {venta.created_at ? new Date(venta.created_at).toLocaleString('es-EC') : '-'}
+                                                        </td>
+                                                        <td className="px-6 py-5 text-sm text-[#2F2A20]">
+                                                            {venta.cliente
+                                                                ? `${venta.cliente.nombre || ''} ${venta.cliente.apellido || ''}`.trim()
+                                                                : 'Consumidor Final'}
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-5">
+                                                            <span className={`inline-flex rounded-md px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider ${esCancelado
+                                                                    ? 'bg-[#E1F8EB] text-[#1AA65E]'
+                                                                    : 'bg-[#FEF3D6] text-[#E2650F]'
+                                                                }`}>
+                                                                {esCancelado ? 'Cancelado' : 'Pendiente'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-5 text-right text-sm font-bold text-[#2F2A20]">
+                                                            {money(totalVenta)}
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-5 text-right text-sm font-extrabold text-[#1AA65E]">
+                                                            {money(totalAbonado)}
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-5 text-right text-sm font-extrabold text-[#E2650F]">
+                                                            {money(saldoPendiente)}
+                                                        </td>
+                                                  
+<td className="whitespace-nowrap px-6 py-5 text-right sm:pr-8">
+    <div className="flex items-center justify-end gap-2">
+        {/* Botón Imprimir Factura/Ticket */}
+        <button
+            type="button"
+            onClick={() => window.open(route('ventas.imprimir', venta.id), '_blank')}
+            title="Ver / Imprimir Factura"
+            className="rounded-lg border border-[#0E7C86] px-2.5 py-1.5 text-xs font-bold text-[#0E7C86] transition hover:bg-[#0E7C86] hover:text-white"
+        >
+            🖨️
+        </button>
+
+        {!esCancelado ? (
+            <button
+                type="button"
+                onClick={() => setVentaSeleccionada({ ...venta, saldoCalculado: saldoPendiente })}
+                className="rounded-lg bg-[#0E7C86] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0A626A]"
+            >
+                Abonar
+            </button>
+        ) : (
+            <span className="text-xs font-semibold text-[#1AA65E]">Saldado</span>
+        )}
+    </div>
+</td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
@@ -659,6 +738,13 @@ export default function Index({
                     )}
                 </div>
             </div>
+
+            {/* MODAL DE PAGO */}
+            <ModalPagoCliente
+                isOpen={!!ventaSeleccionada}
+                onClose={() => setVentaSeleccionada(null)}
+                venta={ventaSeleccionada}
+            />
         </AuthenticatedLayout>
     );
 }

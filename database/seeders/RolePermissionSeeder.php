@@ -27,6 +27,7 @@ class RolePermissionSeeder extends Seeder
             'ver_notificaciones',
             'usar_pos',
             'gestionar_caja',
+            'gestionar_empresa',
         ];
 
         foreach ($permisos as $permiso) {

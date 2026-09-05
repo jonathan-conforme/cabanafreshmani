@@ -17,10 +17,12 @@ class StoreVentaRequest extends FormRequest
             'vuelto' => ['nullable', 'numeric', 'min:0'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.producto_id' => ['required', 'exists:productos,id'],
-            'items.*.tipo_venta' => ['required', 'in:unidad,peso,monto_exacto'],
+            'items.*.tipo_venta' => 'nullable|string',
+            'items.*.cantidad_usuario' => 'nullable|numeric',
             'items.*.cantidad' => ['required', 'numeric', 'gt:0'],
             'items.*.precio_unitario' => ['required', 'numeric', 'min:0'],
             'items.*.subtotal' => ['required', 'numeric', 'min:0'],
+
         ];
     }
 }

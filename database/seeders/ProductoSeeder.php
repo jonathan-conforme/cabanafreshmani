@@ -10,112 +10,50 @@ class ProductoSeeder extends Seeder
 {
     public function run(): void
     {
-        $kg = UnidadMedida::where('simbolo', 'kg')->first();
-        $g = UnidadMedida::where('simbolo', 'g')->first();
-        $l = UnidadMedida::where('simbolo', 'l')->first();
-        $ml = UnidadMedida::where('simbolo', 'ml')->first();
-        $unidad = UnidadMedida::where('simbolo', 'und')->first();
+        // Buscamos la unidad de medida en libras o 'und' por defecto
+        $lb = UnidadMedida::where('simbolo', 'lb')->first()
+            ?? UnidadMedida::where('simbolo', 'und')->first();
 
         $productos = [
             [
-                'unidad_id' => $kg?->id,
+                'unidad_id' => $lb?->id,
                 'codigo_barras' => '786100000001',
-                'nombre' => 'Arroz',
-                'es_granel' => false,
-                'precio_compra' => 1.20,
-                'precio_venta' => 1.50,
-                'stock' => 50,
+                'nombre' => 'Maíz',
+                'es_granel' => true,
+                'precio_compra' => 0.24, // $23/97lb approx 0.24
+                'precio_venta' => 0.35,
+                'stock' => 97,
                 'stock_minimo' => 10,
             ],
             [
-                'unidad_id' => $kg?->id,
+                'unidad_id' => $lb?->id,
                 'codigo_barras' => '786100000002',
-                'nombre' => 'Azúcar',
-                'es_granel' => false,
-                'precio_compra' => 1.10,
-                'precio_venta' => 1.40,
-                'stock' => 40,
+                'nombre' => 'Arroz',
+                'es_granel' => true,
+                'precio_compra' => 0.28, // $28/100lb = 0.28 por libra
+                'precio_venta' => 1.00,
+                'stock' => 100,
                 'stock_minimo' => 10,
             ],
             [
-                'unidad_id' => $kg?->id,
+                'unidad_id' => $lb?->id,
                 'codigo_barras' => '786100000003',
-                'nombre' => 'Harina de trigo',
-                'es_granel' => false,
-                'precio_compra' => 0.95,
-                'precio_venta' => 1.25,
-                'stock' => 35,
-                'stock_minimo' => 8,
-            ],
-            [
-                'unidad_id' => $kg?->id,
-                'codigo_barras' => null,
-                'nombre' => 'Papa',
+                'nombre' => 'Tamarindo',
                 'es_granel' => true,
-                'precio_compra' => 0.60,
-                'precio_venta' => 0.90,
-                'stock' => 80,
-                'stock_minimo' => 15,
-            ],
-            [
-                'unidad_id' => $kg?->id,
-                'codigo_barras' => null,
-                'nombre' => 'Tomate',
-                'es_granel' => true,
-                'precio_compra' => 0.80,
-                'precio_venta' => 1.20,
-                'stock' => 45,
+                'precio_compra' => 0.85, // $85/100lb = 0.85 por libra
+                'precio_venta' => 1.00,
+                'stock' => 100,
                 'stock_minimo' => 10,
             ],
             [
-                'unidad_id' => $kg?->id,
-                'codigo_barras' => null,
-                'nombre' => 'Cebolla',
-                'es_granel' => true,
-                'precio_compra' => 0.50,
-                'precio_venta' => 0.80,
-                'stock' => 30,
-                'stock_minimo' => 8,
-            ],
-            [
-                'unidad_id' => $l?->id,
+                'unidad_id' => $lb?->id,
                 'codigo_barras' => '786100000004',
-                'nombre' => 'Aceite vegetal',
-                'es_granel' => false,
-                'precio_compra' => 2.10,
-                'precio_venta' => 2.60,
-                'stock' => 25,
-                'stock_minimo' => 5,
-            ],
-            [
-                'unidad_id' => $l?->id,
-                'codigo_barras' => '786100000005',
-                'nombre' => 'Leche',
-                'es_granel' => false,
-                'precio_compra' => 0.90,
-                'precio_venta' => 1.15,
-                'stock' => 30,
-                'stock_minimo' => 8,
-            ],
-            [
-                'unidad_id' => $g?->id,
-                'codigo_barras' => '786100000006',
-                'nombre' => 'Sal',
-                'es_granel' => false,
-                'precio_compra' => 0.40,
-                'precio_venta' => 0.60,
-                'stock' => 20,
-                'stock_minimo' => 5,
-            ],
-            [
-                'unidad_id' => $unidad?->id,
-                'codigo_barras' => '786100000007',
-                'nombre' => 'Huevos',
-                'es_granel' => false,
-                'precio_compra' => 0.15,
-                'precio_venta' => 0.20,
-                'stock' => 120,
-                'stock_minimo' => 30,
+                'nombre' => 'Maní Tostado',
+                'es_granel' => true,
+                'precio_compra' => 0.80, // $80/100lb = 0.80 por libra
+                'precio_venta' => 1.00,
+                'stock' => 100,
+                'stock_minimo' => 10,
             ],
         ];
 

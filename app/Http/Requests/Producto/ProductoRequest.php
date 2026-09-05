@@ -65,7 +65,35 @@ class ProductoRequest extends FormRequest
                 'numeric',
                 'min:0',
             ],
-            
+            'permite_unidad_mayor' => [
+                'sometimes',
+                'boolean'
+            ],
+
+            'nombre_unidad_mayor' => [
+                'nullable',
+                'string',
+                'max:50'
+            ],
+
+            'factor_conversion' => [
+                'nullable',
+                'numeric',
+                'min:0'
+            ],
+
+            'precio_unidad_mayor' => [
+                'nullable',
+                'numeric',
+                'min:0'
+            ],
+
+            'precio_compra_unidad_mayor' => [
+                'nullable',
+                'numeric',
+                'min:0'
+            ],
+
             'activo' => [
                 'sometimes',
                 'boolean'],

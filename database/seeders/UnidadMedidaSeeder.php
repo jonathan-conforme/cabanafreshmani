@@ -10,14 +10,7 @@ class UnidadMedidaSeeder extends Seeder
     public function run(): void
     {
         $unidades = [
-            [
-                'nombre' => 'Kilogramo',
-                'simbolo' => 'kg',
-            ],
-            [
-                'nombre' => 'Gramo',
-                'simbolo' => 'g',
-            ],
+
             [
                 'nombre' => 'Libra',
                 'simbolo' => 'lb',
@@ -34,25 +27,14 @@ class UnidadMedidaSeeder extends Seeder
                 'nombre' => 'Unidad',
                 'simbolo' => 'und',
             ],
-            [
-                'nombre' => 'Docena',
-                'simbolo' => 'doc',
-            ],
-            [
-                'nombre' => 'Media docena',
-                'simbolo' => '1/2 doc',
-            ],
+
             [
                 'nombre' => 'Caja',
                 'simbolo' => 'caja',
             ],
-            [
+           [
                 'nombre' => 'Paquete',
                 'simbolo' => 'paq',
-            ],
-            [
-                'nombre' => 'Funda',
-                'simbolo' => 'fda',
             ],
             [
                 'nombre' => 'Saco',
@@ -62,18 +44,7 @@ class UnidadMedidaSeeder extends Seeder
                 'nombre' => 'Quintal',
                 'simbolo' => 'qq',
             ],
-            [
-                'nombre' => 'Tonelada',
-                'simbolo' => 't',
-            ],
-            [
-                'nombre' => 'Metro',
-                'simbolo' => 'm',
-            ],
-            [
-                'nombre' => 'Centímetro',
-                'simbolo' => 'cm',
-            ],
+
         ];
 
         DB::table('unidades_medida')->insert($unidades);

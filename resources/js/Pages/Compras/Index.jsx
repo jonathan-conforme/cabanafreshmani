@@ -15,6 +15,28 @@ export default function Index({
     const [showModal, setShowModal] = useState(false);
     const [showPagoModal, setShowPagoModal] = useState(false);
     const [compraSeleccionada, setCompraSeleccionada] = useState(null);
+    const [costoTotal, setCostoTotal] = useState('');
+
+
+
+const handleCostoTotalChange = (val) => {
+    setCostoTotal(val);
+    const cant = Number(cantidad);
+    const total = Number(val);
+    if (cant > 0 && total >= 0) {
+        setCostoUnitario((total / cant).toFixed(4));
+    }
+};
+
+// Recalcular costo unitario si cambia la cantidad habiendo un costo total
+const handleCantidadChange = (val) => {
+    setCantidad(val);
+    const cant = Number(val);
+    const total = Number(costoTotal);
+    if (cant > 0 && total > 0) {
+        setCostoUnitario((total / cant).toFixed(4));
+    }
+};
 
     // Formulario para Crear Compra
     const {
@@ -122,35 +144,36 @@ export default function Index({
     | AGREGAR / ELIMINAR PRODUCTO DETALLE
     |--------------------------------------------------------------------------
     */
-    const agregarProducto = () => {
-        if (!productoSeleccionado) {
-            warningAlert('Selecciona un producto.');
-            return;
-        }
+   const agregarProducto = () => {
+    if (!productoSeleccionado) {
+        warningAlert('Selecciona un producto.');
+        return;
+    }
 
-        if (!cantidad || Number(cantidad) <= 0) {
-            warningAlert('Ingresa una cantidad válida.');
-            return;
-        }
+    if (!cantidad || Number(cantidad) <= 0) {
+        warningAlert('Ingresa una cantidad válida.');
+        return;
+    }
 
-        if (!costoUnitario || Number(costoUnitario) < 0) {
-            warningAlert('Ingresa un costo unitario válido.');
-            return;
-        }
+    if (!costoUnitario || Number(costoUnitario) < 0) {
+        warningAlert('Ingresa un costo unitario válido.');
+        return;
+    }
 
-        const nuevoDetalle = {
-            producto_id: Number(productoSeleccionado),
-            nombre: productoActual?.nombre || '',
-            cantidad: Number(cantidad),
-            costo_unitario: Number(costoUnitario),
-            subtotal: Number(cantidad) * Number(costoUnitario),
-        };
-
-        setData('detalles', [...data.detalles, nuevoDetalle]);
-        setProductoSeleccionado('');
-        setCantidad('');
-        setCostoUnitario('');
+    const nuevoDetalle = {
+        producto_id: Number(productoSeleccionado),
+        nombre: productoActual?.nombre || '',
+        cantidad: Number(cantidad),
+        costo_unitario: Number(costoUnitario),
+        subtotal: Number(cantidad) * Number(costoUnitario),
     };
+
+    setData('detalles', [...data.detalles, nuevoDetalle]);
+    setProductoSeleccionado('');
+    setCantidad('');
+    setCostoUnitario('');
+    setCostoTotal(''); // Resetear campo
+};
 
     const eliminarDetalle = (index) => {
         const nuevosDetalles = data.detalles.filter((_, i) => i !== index);
@@ -498,48 +521,58 @@ export default function Index({
                                     Productos
                                 </h3>
 
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-                                    <select
-                                        value={productoSeleccionado}
-                                        onChange={(e) => setProductoSeleccionado(e.target.value)}
-                                        className={inputClass}
-                                    >
-                                        <option value="">Selecciona producto</option>
-                                        {productos.map((producto) => (
-                                            <option key={producto.id} value={producto.id}>
-                                                {producto.nombre}
-                                            </option>
-                                        ))}
-                                    </select>
+                               <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
+    <select
+        value={productoSeleccionado}
+        onChange={(e) => setProductoSeleccionado(e.target.value)}
+        className={inputClass}
+    >
+        <option value="">Selecciona producto</option>
+        {productos.map((producto) => (
+            <option key={producto.id} value={producto.id}>
+                {producto.nombre}
+            </option>
+        ))}
+    </select>
 
-                                    <input
-                                        type="number"
-                                        min="0.001"
-                                        step="0.001"
-                                        value={cantidad}
-                                        onChange={(e) => setCantidad(e.target.value)}
-                                        placeholder="Cantidad"
-                                        className={inputClass}
-                                    />
+    <input
+        type="number"
+        min="0.001"
+        step="0.001"
+        value={cantidad}
+        onChange={(e) => handleCantidadChange(e.target.value)}
+        placeholder="Cantidad"
+        className={inputClass}
+    />
 
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={costoUnitario}
-                                        onChange={(e) => setCostoUnitario(e.target.value)}
-                                        placeholder="Costo unitario"
-                                        className={inputClass}
-                                    />
+    <input
+        type="number"
+        min="0"
+        step="0.01"
+        value={costoTotal}
+        onChange={(e) => handleCostoTotalChange(e.target.value)}
+        placeholder="Costo Total ($)"
+        className={inputClass}
+    />
 
-                                    <button
-                                        type="button"
-                                        onClick={agregarProducto}
-                                        className="rounded-full border border-[#0E7C86] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-[#0E7C86] transition hover:bg-[#0E7C86] hover:text-white"
-                                    >
-                                        + Agregar
-                                    </button>
-                                </div>
+    <input
+        type="number"
+        min="0"
+        step="0.0001"
+        value={costoUnitario}
+        onChange={(e) => setCostoUnitario(e.target.value)}
+        placeholder="Costo Unitario"
+        className={inputClass}
+    />
+
+    <button
+        type="button"
+        onClick={agregarProducto}
+        className="rounded-full border border-[#0E7C86] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-[#0E7C86] transition hover:bg-[#0E7C86] hover:text-white"
+    >
+        + Agregar
+    </button>
+</div>
 
                                 <div className="mt-5 overflow-x-auto rounded-lg border border-[#F0E6C8] bg-white">
                                     <table className="w-full text-sm">

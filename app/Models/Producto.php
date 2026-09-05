@@ -19,6 +19,11 @@ class Producto extends BaseModel
         'precio_venta',
         'stock',
         'stock_minimo',
+        'permite_unidad_mayor',
+        'nombre_unidad_mayor',
+        'factor_conversion',
+        'precio_unidad_mayor',
+        'precio_compra_unidad_mayor',
         'activo',
     ];
 
@@ -28,6 +33,10 @@ class Producto extends BaseModel
         'precio_venta' => 'decimal:2',
         'stock' => 'decimal:3',
         'stock_minimo' => 'decimal:3',
+        'permite_unidad_mayor' => 'boolean',
+        'factor_conversion' => 'decimal:3',
+        'precio_unidad_mayor' => 'decimal:2',
+        'precio_compra_unidad_mayor' => 'decimal:2',
         'activo' => 'boolean',
     ];
 

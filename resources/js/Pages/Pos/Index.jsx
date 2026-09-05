@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'; // <-- Importamos useRef y useEffect
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { toast } from '@/Components/SweetAlert';
@@ -6,6 +6,26 @@ import { Search, Plus, Trash2, UserPlus, Lock, Scale, DollarSign, Package, Bankn
 import axios from 'axios';
 
 const formatMoney = (val) => (Number(val) || 0).toFixed(2);
+
+// Helper para impresión en iframe invisible (Modo Kiosco)
+const imprimirTicket = (ventaId) => {
+    if (!ventaId) return;
+
+    let iframe = document.getElementById('iframe-impresion');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'iframe-impresion';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0px';
+        iframe.style.height = '0px';
+        iframe.style.border = '0px';
+        document.body.appendChild(iframe);
+    }
+
+    iframe.src = route('ventas.imprimir', ventaId);
+};
 
 export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum = 0 }) {
     // Referencia para el input del buscador de productos
@@ -123,9 +143,9 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
         }
     };
 
-    const handleOpenProduct = (prod) => {
-        setSelectedProduct(prod);
-        setTipoVenta('unidad');
+    const handleOpenProduct = (product) => {
+        setSelectedProduct(product);
+        setTipoVenta(product.permite_unidad_mayor ? 'unidad_mayor' : 'cantidad');
         setInputValor('1');
         setShowProductModal(true);
     };
@@ -135,26 +155,67 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
         const valor = parseFloat(inputValor);
         if (!valor || valor <= 0) return toast('Ingresa un valor válido', 'warning');
 
-        const precioProducto = Number(selectedProduct.precio ?? selectedProduct.precio_venta ?? 0);
+        const precioLb = Number(selectedProduct.precio_venta ?? selectedProduct.precio ?? 0);
+        const tieneEmpaqueMayor = Boolean(selectedProduct.permite_unidad_mayor);
+        const factorEmpaque = Number(selectedProduct.factor_conversion ?? 100);
 
-        let cantidadCalculada = valor;
-        let subtotalCalculado = valor * precioProducto;
+        const precioEmpaque = tieneEmpaqueMayor && selectedProduct.precio_unidad_mayor
+            ? Number(selectedProduct.precio_unidad_mayor)
+            : precioLb * factorEmpaque;
 
-        if (tipoVenta === 'monto_exacto') {
-            subtotalCalculado = valor;
-            cantidadCalculada = precioProducto > 0 ? valor / precioProducto : 0;
+        let cantidadEnLibras = 0;
+        let subtotalAAgregar = 0;
+        let precioUnitarioMostrado = 0;
+
+        if (tipoVenta === 'quintal' || tipoVenta === 'saco_50' || tipoVenta === 'unidad_mayor') {
+            cantidadEnLibras = valor * factorEmpaque;
+            precioUnitarioMostrado = precioEmpaque;
+            subtotalAAgregar = valor * precioEmpaque;
+        } else if (tipoVenta === 'monto_exacto') {
+            subtotalAAgregar = valor;
+            precioUnitarioMostrado = precioLb;
+            cantidadEnLibras = precioLb > 0 ? valor / precioLb : 0;
+        } else {
+            cantidadEnLibras = valor;
+            precioUnitarioMostrado = precioLb;
+            subtotalAAgregar = valor * precioLb;
         }
 
-        const newItem = {
-            producto_id: selectedProduct.id,
-            nombre: selectedProduct.nombre,
-            tipo_venta: tipoVenta,
-            cantidad: cantidadCalculada,
-            precio_unitario: precioProducto,
-            subtotal: subtotalCalculado,
-        };
+        setCart((prevCart) => {
+            const existingIndex = prevCart.findIndex(
+                (item) => item.producto_id === selectedProduct.id && item.tipo_venta === tipoVenta
+            );
 
-        setCart((prev) => [...prev, newItem]);
+            if (existingIndex !== -1) {
+                const updatedCart = [...prevCart];
+    const existingItem = updatedCart[existingIndex];
+
+    const nuevaCantidadUsuario = existingItem.cantidad_usuario + valor;
+    const nuevaCantidadLibras = existingItem.cantidad + cantidadEnLibras; // <-- CORREGIDO
+    const nuevoSubtotal = existingItem.subtotal + subtotalAAgregar;
+
+    updatedCart[existingIndex] = {
+        ...existingItem,
+        cantidad_usuario: nuevaCantidadUsuario,
+        cantidad: nuevaCantidadLibras, // <-- Asignar la cantidad en libras
+        subtotal: nuevoSubtotal,
+    };
+
+                return updatedCart;
+            } else {
+                const newItem = {
+                    producto_id: selectedProduct.id,
+                    nombre: selectedProduct.nombre,
+                    tipo_venta: tipoVenta,
+                    cantidad_usuario: valor,
+                    cantidad: cantidadEnLibras,
+                    precio_unitario: precioUnitarioMostrado,
+                    subtotal: subtotalAAgregar,
+                };
+                return [...prevCart, newItem];
+            }
+        });
+
         setShowProductModal(false);
         toast('Producto agregado al carrito', 'success');
     };
@@ -181,43 +242,51 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
     };
 
     const handleProcesarVenta = () => {
-    if (cart.length === 0) return toast('El carrito está vacío', 'warning');
-    if (!clienteId) return toast('Selecciona un cliente', 'warning');
+        if (cart.length === 0) return toast('El carrito está vacío', 'warning');
+        if (!clienteId) return toast('Selecciona un cliente', 'warning');
 
-    const montoEfectivo = parseFloat(montoEntregado);
-    const pagoFinal = metodoPago === 'efectivo'
-        ? (!isNaN(montoEfectivo) ? montoEfectivo : totalGeneral)
-        : totalGeneral;
+        const montoEfectivo = parseFloat(montoEntregado);
+        const pagoFinal = metodoPago === 'efectivo'
+            ? (!isNaN(montoEfectivo) ? montoEfectivo : totalGeneral)
+            : totalGeneral;
 
-    router.post(
-        route('ventas.store'),
-        {
-            cliente_id: clienteId,
-            metodo_pago: metodoPago,
-            descuento: parseFloat(descuento || 0),
-            pago_con: pagoFinal,
-            vuelto: vueltoCalculado,
-            items: cart,
-        },
-        {
-            onSuccess: () => {
-                // 1. Limpiar carrito y campos
-                setCart([]);
-                setDescuento(0);
-                setMontoEntregado('');
-                setSearch('');
-                setClienteSearch('');
-
-                toast('¡Venta realizada con éxito!', 'success');
-
-                // 2. Regresar el foco al lector de código de barras
-                setTimeout(() => {
-                    searchInputRef.current?.focus();
-                }, 50);
+        router.post(
+            route('ventas.store'),
+            {
+                cliente_id: clienteId,
+                metodo_pago: metodoPago,
+                descuento: parseFloat(descuento || 0),
+                pago_con: pagoFinal,
+                vuelto: vueltoCalculado,
+                items: cart,
             },
-        }
-    );
-};
+            {
+                onSuccess: (page) => {
+                    setCart([]);
+                    setDescuento(0);
+                    setMontoEntregado('');
+                    setSearch('');
+                    setClienteSearch('');
+
+                    toast('¡Venta realizada con éxito!', 'success');
+
+                    const ventaId = page.props.flash?.venta_id;
+                    if (ventaId) {
+                        imprimirTicket(ventaId);
+                    }
+
+                    setTimeout(() => {
+                        searchInputRef.current?.focus();
+                    }, 50);
+                },
+                onError: (errors) => {
+            // Muestra el mensaje de stock insuficiente capturado desde Laravel
+            const mensajeError = errors.stock || 'No se pudo procesar la venta.';
+            toast(mensajeError, 'error');
+        },
+            }
+        );
+    };
 
     const montoEsperado = useMemo(() => {
         return (parseFloat(caja?.monto_apertura || 0) + parseFloat(ventasEfectivoSum)).toFixed(2);
@@ -255,7 +324,7 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
                     <div className="mb-4 flex items-center gap-3 rounded-2xl bg-white p-3 border border-[#F0E6C8] shadow-sm">
                         <Search className="text-[#A3915F]" size={20} />
                         <input
-                            ref={searchInputRef} // <-- ASIGNACIÓN DE REFERENCIA
+                            ref={searchInputRef}
                             type="text"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -350,9 +419,15 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
                                         <div>
                                             <p className="font-bold text-[#2F2A20]">{item.nombre}</p>
                                             <p className="text-[#8A7A4E]">
-                                                {item.tipo_venta === 'monto_exacto'
-                                                    ? `Monto exacto ($${formatMoney(item.subtotal)})`
-                                                    : `${formatMoney(item.cantidad)} x $${formatMoney(item.precio_unitario)}`}
+                                                {item.tipo_venta === 'monto_exacto' ? (
+                                                    `Monto exacto ($${formatMoney(item.subtotal)}) ~ ${formatMoney(item.cantidad)} Lb`
+                                                ) : item.tipo_venta === 'quintal' ? (
+                                                    `${item.cantidad_usuario} Qq (${formatMoney(item.cantidad)} Lb) x $${formatMoney(item.precio_unitario)}/lb`
+                                                ) : item.tipo_venta === 'saco_50' ? (
+                                                    `${item.cantidad_usuario} Saco(s) (${formatMoney(item.cantidad)} Lb) x $${formatMoney(item.precio_unitario)}/lb`
+                                                ) : (
+                                                    `${formatMoney(item.cantidad)} Lb x $${formatMoney(item.precio_unitario)}/lb`
+                                                )}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-3">
@@ -375,33 +450,30 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
                                 <button
                                     type="button"
                                     onClick={() => setMetodoPago('efectivo')}
-                                    className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-bold ${
-                                        metodoPago === 'efectivo'
-                                            ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
-                                            : 'border-[#E5DCC0] bg-white text-[#7A6A45]'
-                                    }`}
+                                    className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-bold ${metodoPago === 'efectivo'
+                                        ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
+                                        : 'border-[#E5DCC0] bg-white text-[#7A6A45]'
+                                        }`}
                                 >
                                     <Banknote size={16} /> Efectivo
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setMetodoPago('transferencia')}
-                                    className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-bold ${
-                                        metodoPago === 'transferencia'
-                                            ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
-                                            : 'border-[#E5DCC0] bg-white text-[#7A6A45]'
-                                    }`}
+                                    className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-bold ${metodoPago === 'transferencia'
+                                        ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
+                                        : 'border-[#E5DCC0] bg-white text-[#7A6A45]'
+                                        }`}
                                 >
                                     <ArrowRightLeft size={16} /> Transf.
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setMetodoPago('credito')}
-                                    className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-bold ${
-                                        metodoPago === 'credito'
-                                            ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
-                                            : 'border-[#E5DCC0] bg-white text-[#7A6A45]'
-                                    }`}
+                                    className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-bold ${metodoPago === 'credito'
+                                        ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
+                                        : 'border-[#E5DCC0] bg-white text-[#7A6A45]'
+                                        }`}
                                 >
                                     <CreditCard size={16} /> Crédito
                                 </button>
@@ -447,58 +519,84 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
                 </div>
             </div>
 
-            {/* MODALES */}
+            {/* MODAL DE AGREGAR PRODUCTO */}
             {showProductModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
                         <h3 className="text-lg font-extrabold text-[#0E7C86]">{selectedProduct?.nombre}</h3>
-                        <p className="text-xs text-[#8A7A4E]">Precio unitario: ${formatMoney(selectedProduct?.precio ?? selectedProduct?.precio_venta)}</p>
+                        <p className="text-xs text-[#8A7A4E]">
+                            Precio unitario/lb: ${formatMoney(selectedProduct?.precio ?? selectedProduct?.precio_venta)}
+                        </p>
 
-                        <div className="my-4 grid grid-cols-3 gap-2">
+                        <div className="my-4 grid grid-cols-2 gap-2">
                             <button
                                 type="button"
-                                onClick={() => setTipoVenta('unidad')}
-                                className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-[10px] font-bold uppercase ${
-                                    tipoVenta === 'unidad' ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]' : 'border-[#E5DCC0]'
+                                onClick={() => setTipoVenta('cantidad')}
+                                className={`rounded-xl border p-2 text-xs font-bold ${
+                                    tipoVenta === 'cantidad'
+                                        ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
+                                        : 'border-[#E5DCC0]'
                                 }`}
                             >
-                                <Package size={18} /> Unidad
+                                Unidad / Libra (Lb)
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => setTipoVenta('peso')}
-                                className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-[10px] font-bold uppercase ${
-                                    tipoVenta === 'peso' ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]' : 'border-[#E5DCC0]'
-                                }`}
-                            >
-                                <Scale size={18} /> Por Peso
-                            </button>
+
                             <button
                                 type="button"
                                 onClick={() => setTipoVenta('monto_exacto')}
-                                className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-[10px] font-bold uppercase ${
-                                    tipoVenta === 'monto_exacto' ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]' : 'border-[#E5DCC0]'
+                                className={`rounded-xl border p-2 text-xs font-bold ${
+                                    tipoVenta === 'monto_exacto'
+                                        ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
+                                        : 'border-[#E5DCC0]'
                                 }`}
                             >
-                                <DollarSign size={18} /> Monto $
+                                Monto ($)
                             </button>
+
+                            {Boolean(selectedProduct?.permite_unidad_mayor) && (
+                                <button
+                                    type="button"
+                                    onClick={() => setTipoVenta('unidad_mayor')}
+                                    className={`col-span-2 rounded-xl border p-2.5 text-xs font-bold ${
+                                        tipoVenta === 'unidad_mayor' || tipoVenta === 'quintal'
+                                            ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
+                                            : 'border-[#E5DCC0]'
+                                    }`}
+                                >
+                                    {selectedProduct?.nombre_unidad_mayor || 'Unidad Mayor'} ({Number(selectedProduct?.factor_conversion || 100)} Lb)
+                                </button>
+                            )}
                         </div>
 
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={inputValor}
-                            onChange={(e) => setInputValor(e.target.value)}
-                            placeholder={tipoVenta === 'monto_exacto' ? 'Ingrese el dinero ($)' : 'Ingrese la cantidad/peso'}
-                            className="w-full rounded-xl border border-[#E5DCC0] bg-[#FFFDF6] px-4 py-2.5 text-sm font-bold outline-none"
-                            autoFocus
-                        />
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-[#8A7A4E]">
+                                {tipoVenta === 'monto_exacto' ? 'Ingrese el dinero a vender ($):' : 'Ingrese la cantidad (Unidades / Lbs / Kg):'}
+                            </label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={inputValor}
+                                onChange={(e) => setInputValor(e.target.value)}
+                                placeholder={tipoVenta === 'monto_exacto' ? 'Ej: 5.00' : 'Ej: 1 o 2.5'}
+                                className="w-full rounded-xl border border-[#E5DCC0] bg-[#FFFDF6] px-4 py-2.5 text-sm font-bold text-[#2F2A20] outline-none focus:border-[#0E7C86]"
+                                autoFocus
+                            />
+                        </div>
 
                         <div className="mt-5 flex gap-2">
-                            <button onClick={() => setShowProductModal(false)} className="w-1/2 rounded-full border py-2 text-xs font-bold text-[#7A6A45]">
+                            <button
+                                type="button"
+                                onClick={() => setShowProductModal(false)}
+                                className="w-1/2 rounded-full border border-[#E5DCC0] py-2 text-xs font-bold text-[#7A6A45] hover:bg-gray-50"
+                            >
                                 Cancelar
                             </button>
-                            <button onClick={handleAddToCart} className="w-1/2 rounded-full bg-[#0E7C86] py-2 text-xs font-bold text-white">
+                            <button
+                                type="button"
+                                onClick={handleAddToCart}
+                                className="w-1/2 rounded-full bg-[#0E7C86] py-2 text-xs font-bold text-white shadow-md hover:bg-[#0B646C]"
+                            >
                                 Agregar
                             </button>
                         </div>
@@ -588,17 +686,16 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
 
                         {cierreData.monto_cierre && (
                             <div
-                                className={`rounded-xl p-3 text-center text-xs font-extrabold ${
-                                    parseFloat(diferenciaArqueo) < 0
-                                        ? 'bg-red-50 text-red-600 border border-red-200'
-                                        : 'bg-green-50 text-green-700 border border-green-200'
-                                }`}
+                                className={`rounded-xl p-3 text-center text-xs font-extrabold ${parseFloat(diferenciaArqueo) < 0
+                                    ? 'bg-red-50 text-red-600 border border-red-200'
+                                    : 'bg-green-50 text-green-700 border border-green-200'
+                                    }`}
                             >
                                 {parseFloat(diferenciaArqueo) < 0
                                     ? `FALTANTE DE: $${Math.abs(diferenciaArqueo).toFixed(2)}`
                                     : parseFloat(diferenciaArqueo) > 0
-                                    ? `SOBRANTE DE: $${diferenciaArqueo}`
-                                    : 'CUADRE EXACTO DE CAJA'}
+                                        ? `SOBRANTE DE: $${diferenciaArqueo}`
+                                        : 'CUADRE EXACTO DE CAJA'}
                             </div>
                         )}
 

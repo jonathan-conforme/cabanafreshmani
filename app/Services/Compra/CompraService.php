@@ -2,12 +2,13 @@
 
 namespace App\Services\Compra;
 
+use App\Models\Compra;
+use App\Models\PagoCompra;
+use App\Models\Producto;
 use App\Services\Inventario\InventarioService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
-use App\Models\PagoCompra;
-use App\Models\Compra;
 
 class CompraService
 {
@@ -68,13 +69,18 @@ class CompraService
                     'subtotal' => $subtotal,
                 ]);
 
+                // Actualiza el costo de compra por defecto en el catálogo de productos
+                Producto::where('id', $detalle['producto_id'])->update([
+                    'precio_compra' => $detalle['costo_unitario'],
+                ]);
+
                 // Se delega al InventarioService para calcular stock previo, nuevo y costo unitario
                 $this->inventarioService->registrarMovimiento(
                     productoId: $detalle['producto_id'],
                     tipo: 'COMPRA',
                     cantidad: (float) $detalle['cantidad'],
                     costoUnitario: (float) $detalle['costo_unitario'],
-                    descripcion: 'Entrada por compra #' . $compra->id,
+                    descripcion: 'Entrada por compra #'.$compra->id,
                     origen: $compra
                 );
             }
@@ -83,65 +89,65 @@ class CompraService
         });
 
     }
+
     public function registrarPago(Compra $compra, array $data): PagoCompra
-{
-    return DB::transaction(function () use ($compra, $data) {
-        $saldoPendiente = $compra->total - $compra->monto_pagado;
+    {
+        return DB::transaction(function () use ($compra, $data) {
+            $saldoPendiente = $compra->total - $compra->monto_pagado;
 
-        if ($data['monto'] > $saldoPendiente) {
-            throw new Exception("El monto ingresado ($" . $data['monto'] . ") supera el saldo pendiente ($" . $saldoPendiente . ").");
-        }
+            if ($data['monto'] > $saldoPendiente) {
+                throw new Exception('El monto ingresado ($'.$data['monto'].') supera el saldo pendiente ($'.$saldoPendiente.').');
+            }
 
-        // 1. Guardar el abono
-        $pago = $compra->pagos()->create([
-            'user_id'     => auth()->id(),
-            'monto'       => $data['monto'],
-            'metodo_pago' => $data['metodo_pago'],
-            'fecha_pago'  => $data['fecha_pago'] ?? now(),
-            'observacion' => $data['observacion'] ?? null,
-        ]);
+            // 1. Guardar el abono
+            $pago = $compra->pagos()->create([
+                'user_id' => auth()->id(),
+                'monto' => $data['monto'],
+                'metodo_pago' => $data['metodo_pago'],
+                'fecha_pago' => $data['fecha_pago'] ?? now(),
+                'observacion' => $data['observacion'] ?? null,
+            ]);
 
-        // 2. Actualizar monto pagado y cambiar estado si liquidó la deuda
-        $nuevoMontoPagado = $compra->monto_pagado + $data['monto'];
-        $nuevoEstado = $nuevoMontoPagado >= $compra->total ? 'pagada' : 'pendiente';
+            // 2. Actualizar monto pagado y cambiar estado si liquidó la deuda
+            $nuevoMontoPagado = $compra->monto_pagado + $data['monto'];
+            $nuevoEstado = $nuevoMontoPagado >= $compra->total ? 'pagada' : 'pendiente';
 
-        $compra->update([
-            'monto_pagado' => $nuevoMontoPagado,
-            'estado'       => $nuevoEstado,
-        ]);
+            $compra->update([
+                'monto_pagado' => $nuevoMontoPagado,
+                'estado' => $nuevoEstado,
+            ]);
 
-        return $pago;
-    });
-}
-// app/Services/Compra/CompraService.php
+            return $pago;
+        });
+    }
+    // app/Services/Compra/CompraService.php
 
-public function deletePurchase(Compra $compra): void
-{
-    DB::transaction(function () use ($compra) {
-        // 1. Revertir inventario registrando un movimiento de tipo 'ajuste'
-        foreach ($compra->detalles as $detalle) {
-            $this->inventarioService->registrarMovimiento(
-                productoId: $detalle->producto_id,
-                tipo: 'ajuste', // Valor permitido por la migración ('venta', 'compra', 'ajuste', 'merma')
-                cantidad: (float) -$detalle->cantidad, // Negativo para descontar el stock revertido
-                costoUnitario: (float) $detalle->costo_unitario,
-                descripcion: 'Reversión por eliminación de compra #' . $compra->id,
-                origen: $compra
-            );
-        }
+    public function deletePurchase(Compra $compra): void
+    {
+        DB::transaction(function () use ($compra) {
+            // 1. Revertir inventario registrando un movimiento de tipo 'ajuste'
+            foreach ($compra->detalles as $detalle) {
+                $this->inventarioService->registrarMovimiento(
+                    productoId: $detalle->producto_id,
+                    tipo: 'ajuste', // Valor permitido por la migración ('venta', 'compra', 'ajuste', 'merma')
+                    cantidad: (float) -$detalle->cantidad, // Negativo para descontar el stock revertido
+                    costoUnitario: (float) $detalle->costo_unitario,
+                    descripcion: 'Reversión por eliminación de compra #'.$compra->id,
+                    origen: $compra
+                );
+            }
 
-        // 2. Eliminar la factura si existía en almacenamiento
-        if ($compra->factura && Storage::disk('public')->exists($compra->factura)) {
-            Storage::disk('public')->delete($compra->factura);
-        }
+            // 2. Eliminar la factura si existía en almacenamiento
+            if ($compra->factura && Storage::disk('public')->exists($compra->factura)) {
+                Storage::disk('public')->delete($compra->factura);
+            }
 
-        // 3. Eliminar pagos y detalles asociados
-        $compra->pagos()->delete();
-        $compra->detalles()->delete();
+            // 3. Eliminar pagos y detalles asociados
+            $compra->pagos()->delete();
+            $compra->detalles()->delete();
 
-        // 4. Eliminar el registro de la compra
-        $compra->delete();
-    });
-}
-
+            // 4. Eliminar el registro de la compra
+            $compra->delete();
+        });
+    }
 }

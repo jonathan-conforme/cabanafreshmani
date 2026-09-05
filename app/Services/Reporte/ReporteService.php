@@ -140,20 +140,30 @@ class ReporteService
      * Cuentas por cobrar: ventas a credito registradas en el rango.
      * Se agrupan por cliente para ver a quien se le debe reclamar el dinero.
      */
+    /**
+     * Cuentas por cobrar: ventas a crédito o pendientes de cobro.
+     */
     public function cuentasPorCobrar(array $filtros): array
     {
-        [$desde, $hasta] = $this->rangoFechas($filtros);
+        // Consulta base ajustada a tu base de datos real
+        $baseQuery = Venta::where(function($query) {
+            $query->where('metodo_pago', 'credito')
+                  ->orWhere('estado', 'pendiente');
+        });
 
-        $baseQuery = Venta::whereDate('ventas.created_at', '>=', $desde)
-            ->whereDate('ventas.created_at', '<=', $hasta)
-            ->where('ventas.metodo_pago', 'credito')
-            ->where('ventas.estado', 'completada');
+        // Aplicamos el filtro de fechas opcionalmente si se especificó
+        if (!empty($filtros['desde'])) {
+            $baseQuery->whereDate('ventas.created_at', '>=', $filtros['desde']);
+        }
+        if (!empty($filtros['hasta'])) {
+            $baseQuery->whereDate('ventas.created_at', '<=', $filtros['hasta']);
+        }
 
         $totales = (clone $baseQuery)
-            ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total, COALESCE(AVG(total), 0) as promedio')
+            ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(total - pago_con), SUM(total)) as total, COALESCE(AVG(total), 0) as promedio')
             ->first();
 
-        // Clientes distintos con deuda en el rango (incluye ventas sin cliente asignado).
+        // Clientes distintos con deuda acumulada
         $totales->clientes = (clone $baseQuery)
             ->distinct()
             ->count(DB::raw('COALESCE(cliente_id, 0)'));
@@ -167,14 +177,14 @@ class ReporteService
                 clientes.telefono,
                 clientes.limite_credito,
                 COUNT(ventas.id) as cantidad,
-                SUM(ventas.total) as total
+                SUM(COALESCE(ventas.total - ventas.pago_con, ventas.total)) as total
             ")
             ->groupBy('clientes.id', 'clientes.nombre', 'clientes.apellido', 'clientes.identificacion', 'clientes.telefono', 'clientes.limite_credito')
             ->orderByDesc('total')
             ->get();
 
-        $ventasCredito = (clone $baseQuery)
-            ->with(['user:id,name', 'cliente:id,nombre,apellido,identificacion,telefono'])
+       $ventasCredito = (clone $baseQuery)
+            ->with(['user:id,name', 'cliente:id,nombre,apellido,identificacion,telefono', 'pagos'])
             ->latest()
             ->paginate(10, ['*'], 'page')
             ->withQueryString();

@@ -46,6 +46,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
                 'warning' => fn () => $request->session()->get('warning'),
                 'info' => fn () => $request->session()->get('info'),
+                'venta_id' => fn () => $request->session()->get('venta_id'),
             ],
 
             // Solo quien administra recibe notificaciones; para el resto ni se consulta la BD.

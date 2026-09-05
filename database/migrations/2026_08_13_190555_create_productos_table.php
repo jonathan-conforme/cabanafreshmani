@@ -21,6 +21,12 @@ return new class extends Migration
             $table->decimal('precio_venta', 10, 2);
             $table->decimal('stock_minimo', 10, 3)->default(0.000);
             $table->decimal('stock', 10, 3)->default(0.000);
+            // --- NUEVOS CAMPOS MAYORISTAS ---
+        $table->boolean('permite_unidad_mayor')->default(false);
+        $table->string('nombre_unidad_mayor', 50)->nullable(); // Ej: Saco
+        $table->decimal('factor_conversion', 10, 3)->default(1.000); // Ej: 100
+        $table->decimal('precio_unidad_mayor', 10, 2)->nullable(); // Ej: 32.00
+        $table->decimal('precio_compra_unidad_mayor', 10, 2)->nullable(); // Ej: 29.50
             $table->boolean('activo')->default(true);
             $table->timestamps();
 
