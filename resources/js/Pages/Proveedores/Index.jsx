@@ -146,7 +146,7 @@ export default function Index({ proveedores, filters }) {
             }
         >
 
-            <div className="min-h-screen bg-[#FDF8E7] py-8">
+            <div className="min-h-full bg-[#FDF8E7] py-8">
 
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 

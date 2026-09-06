@@ -1,2 +1,12 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
+
+/* Oculta la barra de scroll sin quitar el desplazamiento (menu lateral). */
+@utility scrollbar-oculta {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}

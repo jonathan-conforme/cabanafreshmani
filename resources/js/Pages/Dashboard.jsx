@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Transition } from '@headlessui/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import NotificationBell from '@/Components/NotificationBell';
 import {
     Wallet,
     TrendingUp,
@@ -10,7 +8,6 @@ import {
     AlertTriangle,
     MoreHorizontal,
     Filter,
-    ChevronDown,
 } from 'lucide-react';
 
 /** Cada cuántos segundos se vuelven a pedir los datos del dashboard. */
@@ -255,11 +252,6 @@ export default function Dashboard({
     sales = [],
     recent = [],
 }) {
-    const { auth } = usePage().props;
-    const userName = auth?.user?.name ?? 'Usuario';
-
-    const [showingUserMenu, setShowingUserMenu] = useState(false);
-
     /* ---- Auto-actualización en segundo plano (polling, sin UI) ---- */
     const refreshingRef = useRef(false);
 
@@ -303,83 +295,7 @@ export default function Dashboard({
         <AuthenticatedLayout>
             <Head title="Dashboard" />
 
-            <div className="min-h-screen bg-stone-50 px-4 py-6 sm:px-6 lg:px-8">
-                {/* BARRA SUPERIOR */}
-                <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <h1 className="text-2xl font-bold tracking-tight text-stone-800">
-                        Bienvenido de nuevo, {userName} <span className="align-middle">👋</span>
-                    </h1>
-
-                    {/* Se oculta en móvil: en el celular esto vive en la barra café y el sidebar */}
-                    <div className="hidden items-center gap-4 lg:flex">
-                        <NotificationBell />
-                        {/* MENÚ DE USUARIO */}
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setShowingUserMenu((v) => !v)}
-                                className="flex items-center gap-2 rounded-full p-1 pr-2 transition hover:bg-stone-100"
-                            >
-                                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-teal-100 text-sm font-bold text-teal-700">
-                                    {userName.charAt(0)}
-                                </span>
-                                <span className="hidden text-sm font-semibold text-stone-700 sm:block">{userName}</span>
-                                <ChevronDown
-                                    size={16}
-                                    className={`text-stone-400 transition ${showingUserMenu ? 'rotate-180' : ''}`}
-                                />
-                            </button>
-
-                            {/* Fondo invisible para cerrar al hacer clic afuera */}
-                            {showingUserMenu && (
-                                <div className="fixed inset-0 z-40" onClick={() => setShowingUserMenu(false)} />
-                            )}
-
-                            <Transition
-                                show={showingUserMenu}
-                                enter="transition ease-out duration-150"
-                                enterFrom="opacity-0 translate-y-1"
-                                enterTo="opacity-100 translate-y-0"
-                                leave="transition ease-in duration-100"
-                                leaveFrom="opacity-100 translate-y-0"
-                                leaveTo="opacity-0 translate-y-1"
-                            >
-                                <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-stone-200 bg-white p-1.5 shadow-lg">
-                                    <Link
-                                        href={route('profile.edit')}
-                                        onClick={() => setShowingUserMenu(false)}
-                                        className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-stone-700 transition hover:bg-amber-50 hover:text-[#1c1210]"
-                                    >
-                                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                            </svg>
-                                        </span>
-                                        Perfil
-                                    </Link>
-
-                                    <div className="my-1 border-t border-stone-100" />
-
-                                    <Link
-                                        href={route('logout')}
-                                        method="post"
-                                        as="button"
-                                        onClick={() => setShowingUserMenu(false)}
-                                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-start text-sm text-red-600 transition hover:bg-red-50 hover:text-red-700"
-                                    >
-                                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3H21" />
-                                            </svg>
-                                        </span>
-                                        Cerrar Sesión
-                                    </Link>
-                                </div>
-                            </Transition>
-                        </div>
-                    </div>
-                </div>
-
+            <div className="min-h-full bg-stone-50 px-4 py-6 sm:px-6 lg:px-8">
                 {/* TARJETAS DE RESUMEN */}
                 <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     {stats.map((s) => (

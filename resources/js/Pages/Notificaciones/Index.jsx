@@ -95,7 +95,7 @@ export default function Index({ notificaciones, resumen, filtros }) {
         <AuthenticatedLayout header={<h2 className="text-xl font-bold text-[#0E7C86]">Notificaciones</h2>}>
             <Head title="Notificaciones" />
 
-            <div className="min-h-screen bg-[#FDF8E7] py-8">
+            <div className="min-h-full bg-[#FDF8E7] py-8">
                 <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
                     {/* Encabezado */}
                     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">

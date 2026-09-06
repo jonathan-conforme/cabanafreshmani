@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import ModalPagoCliente from './ModalPagoCliente';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -13,6 +13,7 @@ import {
     Landmark,
     HandCoins,
     Users,
+    FileDown,
 } from 'lucide-react';
 
 const TABS = [
@@ -23,6 +24,14 @@ const TABS = [
     { key: 'caja', label: 'Cierre de Caja', icon: Landmark },
     { key: 'cuentas_cobrar', label: 'Cuentas por Cobrar', icon: HandCoins },
 ];
+
+// Reportes que se pueden descargar en PDF.
+const TIPOS_CON_PDF = ['compras', 'inventario', 'caja', 'cuentas_cobrar'];
+
+// Cuentas por cobrar abre sin rango aplicado: un saldo sigue vigente aunque la
+// venta sea antigua. El filtro de fechas sigue disponible si se quiere acotar.
+const ABREN_SIN_RANGO = ['cuentas_cobrar'];
+
 const handleSubmit = (e) => {
         e.preventDefault();
 
@@ -161,24 +170,41 @@ export default function Index({
     const [limite, setLimite] = useState(filtros.limite || 15);
     const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 
+    // Los inputs siempre reflejan el rango que el servidor aplico: al cambiar de
+    // pestaña el rango puede quedar vacio y las cajas de fecha deben mostrarlo.
+    useEffect(() => {
+        setDesde(filtros.desde || '');
+        setHasta(filtros.hasta || '');
+    }, [tipo, filtros.desde, filtros.hasta]);
+
+    const abreSinRango = ABREN_SIN_RANGO.includes(tipo);
+
     const irA = (nuevoTipo, extra = {}) => {
+        // El rango no se arrastra a un reporte que abre sin el.
+        const rango = ABREN_SIN_RANGO.includes(nuevoTipo) ? {} : { desde, hasta };
+
         router.get(
             route('reportes.index'),
-            { tipo: nuevoTipo, desde, hasta, ...(nuevoTipo === 'productos' ? { limite } : {}), ...extra },
+            { tipo: nuevoTipo, ...rango, ...(nuevoTipo === 'productos' ? { limite } : {}), ...extra },
             { preserveState: true, preserveScroll: true }
         );
     };
 
     const aplicarFiltros = (e) => {
         e.preventDefault();
-        irA(tipo);
+        // Aqui el rango va explicito: es lo que el usuario acaba de escribir.
+        irA(tipo, { desde, hasta });
+    };
+
+    const descargarPdf = () => {
+        window.location.href = route('reportes.pdf', { tipo, desde, hasta });
     };
 
     return (
         <AuthenticatedLayout header={<h2 className="text-xl font-bold text-[#0E7C86]">Reportes</h2>}>
             <Head title="Reportes" />
 
-            <div className="min-h-screen bg-[#FDF8E7] py-8">
+            <div className="min-h-full bg-[#FDF8E7] py-8">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="mb-6">
                         <h1 className="text-xl font-extrabold tracking-tight text-[#0E7C86] sm:text-2xl">
@@ -262,6 +288,32 @@ export default function Index({
                         >
                             Aplicar
                         </button>
+
+                        {abreSinRango && (desde || hasta) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setDesde('');
+                                    setHasta('');
+                                    irA(tipo, { desde: '', hasta: '' });
+                                }}
+                                className="rounded-full border border-[#E5DCC0] px-6 py-2.5 text-xs font-extrabold uppercase tracking-wider text-[#7A6A45] transition hover:bg-[#FDF8E7]"
+                            >
+                                Ver todo
+                            </button>
+                        )}
+
+                        {TIPOS_CON_PDF.includes(tipo) && (
+                            <button
+                                type="button"
+                                onClick={descargarPdf}
+                                title="Descargar este reporte en PDF"
+                                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] px-6 py-2.5 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#E2650F]/25 transition hover:from-[#E2650F] hover:to-[#C9550A]"
+                            >
+                                <FileDown size={15} />
+                                Descargar PDF
+                            </button>
+                        )}
                     </form>
 
                     {/* ===================== VENTAS ===================== */}
@@ -622,6 +674,9 @@ export default function Index({
                                     <h2 className="font-bold text-[#0E7C86]">Detalle de Cuentas por Cobrar</h2>
                                     <p className="mt-1 text-sm text-[#A3915F]">
                                         Estado de deudas, abonos realizados y saldos pendientes.
+                                        {desde || hasta
+                                            ? ' Filtrado por la fecha de registro de la venta.'
+                                            : ' Se listan todos los clientes con deuda, sin importar la fecha de la venta.'}
                                     </p>
                                 </div>
                                 <div className="overflow-x-auto">

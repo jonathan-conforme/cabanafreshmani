@@ -304,16 +304,14 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
 
     return (
         <AuthenticatedLayout
-            header={
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-[#0E7C86]">Módulo POS / Ventas</h2>
-                    <button
-                        onClick={() => setShowCierreModal(true)}
-                        className="flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-100"
-                    >
-                        <Lock size={16} /> Cerrar Caja Activa
-                    </button>
-                </div>
+            header={<h2 className="text-xl font-bold text-[#0E7C86]">Módulo POS / Ventas</h2>}
+            actions={
+                <button
+                    onClick={() => setShowCierreModal(true)}
+                    className="flex items-center gap-2 whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 transition hover:bg-red-100"
+                >
+                    <Lock size={16} /> Cerrar Caja Activa
+                </button>
             }
         >
             <Head title="POS Venta" />

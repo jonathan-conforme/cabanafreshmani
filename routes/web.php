@@ -140,6 +140,7 @@ Route::middleware('auth')->group(function () {
     // Reportes
     Route::middleware('can:ver_reportes')->group(function () {
         Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
+        Route::get('/reportes/pdf', [ReporteController::class, 'pdf'])->name('reportes.pdf');
     });
 
     // Notificaciones (solo administración: los vendedores no las ven)
