@@ -563,7 +563,7 @@ export default function AuthenticatedLayout({ header, actions, children }) {
                     </div>
                 </header>
 
-                <main scroll-region="" className="flex-1 overflow-y-auto overscroll-contain">
+                <main scroll-region="" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                     {children}
                 </main>
             </div>
