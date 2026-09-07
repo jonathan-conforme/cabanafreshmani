@@ -1,2 +1,35 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
+
+/* Oculta la barra de scroll sin quitar el desplazamiento (menu lateral). */
+@utility scrollbar-oculta {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+/* Barra de scroll delgada y visible para el catalogo y el carrito del POS. */
+@utility scrollbar-fina {
+    scrollbar-width: thin;
+    scrollbar-color: #D9CDA6 transparent;
+
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: #D9CDA6;
+        border-radius: 9999px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background-color: #A3915F;
+    }
+}

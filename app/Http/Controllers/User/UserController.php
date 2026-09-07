@@ -84,4 +84,28 @@ class UserController extends Controller
             ->route('users.index')
             ->with('success', 'Empleado actualizado exitosamente.');
     }
+
+    /**
+     * El boton de eliminar ya existia en la vista, pero este metodo no: la ruta
+     * quedaba apuntando al vacio y respondia 500.
+     *
+     * Los dos cortes de abajo evitan dejar el sistema sin quien lo administre,
+     * que no se recupera desde la interfaz.
+     */
+    public function destroy(User $user): RedirectResponse
+    {
+        if ($user->is(auth()->user())) {
+            return back()->with('error', 'No puedes eliminar tu propia cuenta desde aqui.');
+        }
+
+        if ($user->hasRole('administrador') && User::role('administrador')->count() <= 1) {
+            return back()->with('error', 'No puedes eliminar al unico administrador. Crea otro primero.');
+        }
+
+        $this->userService->deleteUser($user);
+
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'Empleado eliminado exitosamente.');
+    }
 }

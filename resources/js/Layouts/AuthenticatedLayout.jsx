@@ -5,7 +5,7 @@ import { toast } from '@/Components/SweetAlert';
 import NotificationBell from '@/Components/NotificationBell';
 import { route } from "ziggy-js";
 
-export default function AuthenticatedLayout({ header, children }) {
+export default function AuthenticatedLayout({ header, actions, children }) {
     const user = usePage().props.auth.user;
     const { flash } = usePage().props;
 
@@ -43,6 +43,7 @@ export default function AuthenticatedLayout({ header, children }) {
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
     const [showingUserMenu, setShowingUserMenu] = useState(false);
     const userMenuRef = useRef(null);
+    const userMenuEscritorioRef = useRef(null);
 
     // ---------------------------------------------------------
     // 1. ESCUCHADOR DEL MENÚ DE USUARIO (CLICK OUTSIDE Y ESC)
@@ -51,7 +52,10 @@ export default function AuthenticatedLayout({ header, children }) {
         if (!showingUserMenu) return;
 
         const handleClickOutside = (event) => {
-            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+            const dentroMovil = userMenuRef.current?.contains(event.target);
+            const dentroEscritorio = userMenuEscritorioRef.current?.contains(event.target);
+
+            if (!dentroMovil && !dentroEscritorio) {
                 setShowingUserMenu(false);
             }
         };
@@ -277,44 +281,7 @@ export default function AuthenticatedLayout({ header, children }) {
     ];
 
     return (
-        <div className="min-h-screen bg-amber-50 lg:flex">
-            {/* Barra superior móvil */}
-            <div className="sticky top-0 z-30 flex items-center justify-between bg-gradient-to-br from-[#44281a] to-[#1c1210] px-4 py-3 lg:hidden">
-                <Link href="/" className="flex items-center">
-                    <img
-                        src="/images/cabana-fresh-mani-logo.png"
-                        alt="Cabaña Fresh Maní"
-                        className="h-8 w-auto"
-                    />
-                </Link>
-                <div className="flex items-center gap-1">
-                    <NotificationBell variant="light" />
-
-                    <button
-                        onClick={() => setShowingNavigationDropdown((prev) => !prev)}
-                        className="rounded-md p-2 text-amber-100 transition hover:bg-white/10"
-                        aria-label="Abrir menú"
-                    >
-                        <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                            <path
-                                className={!showingNavigationDropdown ? 'inline-flex' : 'hidden'}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M4 6h16M4 12h16M4 18h16"
-                            />
-                            <path
-                                className={showingNavigationDropdown ? 'inline-flex' : 'hidden'}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
+        <div className="flex h-screen overflow-hidden bg-amber-50 supports-[height:100dvh]:h-dvh">
             {/* Overlay móvil */}
             {showingNavigationDropdown && (
                 <div
@@ -329,7 +296,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     }`}
             >
                 <div
-                    className="flex items-center justify-center border-b border-white/10 px-4 py-6"
+                    className="flex shrink-0 items-center justify-center border-b border-white/10 px-4 py-6"
                     style={{ background: 'radial-gradient(circle at 50% 30%, rgba(245,185,48,0.22), transparent 65%)' }}
                 >
                     <Link href="/">
@@ -341,7 +308,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     </Link>
                 </div>
 
-                <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-5">
+                <nav className="scrollbar-oculta flex-1 space-y-1.5 overflow-y-auto px-3 py-5">
                     {navItems
                         .filter((item) => item.show)
                         .map((item) => (
@@ -371,7 +338,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 </nav>
 
                 {/* Usuario (solo en móvil; en PC va en la barra superior del dashboard) */}
-                <div ref={userMenuRef} className="relative border-t border-white/10 p-3 lg:hidden">
+                <div ref={userMenuRef} className="relative shrink-0 border-t border-white/10 p-3 lg:hidden">
                     <button
                         type="button"
                         onClick={() => setShowingUserMenu((prev) => !prev)}
@@ -453,16 +420,152 @@ export default function AuthenticatedLayout({ header, children }) {
             </aside>
 
             {/* Contenido principal */}
-            <div className="flex min-h-screen flex-1 flex-col">
-                {header && (
-                    <header className="border-b border-amber-100 bg-white/70 backdrop-blur">
-                        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-                            {header}
-                        </div>
-                    </header>
-                )}
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                {/* Barra superior móvil */}
+                <div className="z-30 flex shrink-0 items-center justify-between bg-gradient-to-br from-[#44281a] to-[#1c1210] px-4 py-3 lg:hidden">
+                    <Link href="/" className="flex items-center">
+                        <img
+                            src="/images/cabana-fresh-mani-logo.png"
+                            alt="Cabaña Fresh Maní"
+                            className="h-8 w-auto"
+                        />
+                    </Link>
+                    <div className="flex items-center gap-1">
+                        <NotificationBell variant="light" />
 
-                <main className="flex-1">{children}</main>
+                        <button
+                            onClick={() => setShowingNavigationDropdown((prev) => !prev)}
+                            className="rounded-md p-2 text-amber-100 transition hover:bg-white/10"
+                            aria-label="Abrir menú"
+                        >
+                            <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                <path
+                                    className={!showingNavigationDropdown ? 'inline-flex' : 'hidden'}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M4 6h16M4 12h16M4 18h16"
+                                />
+                                <path
+                                    className={showingNavigationDropdown ? 'inline-flex' : 'hidden'}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <header className="shrink-0 border-b border-amber-100 bg-white/70 backdrop-blur">
+                    <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+                        <div className="min-w-0">
+                            {header}
+                            <p
+                                className={
+                                    header
+                                        ? 'mt-1 truncate text-sm text-stone-500'
+                                        : 'truncate text-2xl font-bold tracking-tight text-stone-800'
+                                }
+                            >
+                                Bienvenido de nuevo, {user.name} <span className="align-middle">👋</span>
+                            </p>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+                            {actions}
+
+                            {/* Solo escritorio: en el celular esto vive en la barra café y el sidebar */}
+                            <div className="hidden items-center gap-4 lg:flex">
+                                <NotificationBell />
+
+                                <div ref={userMenuEscritorioRef} className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowingUserMenu((prev) => !prev)}
+                                        aria-haspopup="true"
+                                        aria-expanded={showingUserMenu}
+                                        className="flex items-center gap-2 rounded-full p-1 pr-2 transition hover:bg-stone-100"
+                                    >
+                                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-teal-100 text-sm font-bold text-teal-700">
+                                            {user.name?.charAt(0).toUpperCase()}
+                                        </span>
+                                        <span className="text-sm font-semibold text-stone-700">{user.name}</span>
+                                        <svg
+                                            className={`h-4 w-4 text-stone-400 transition-transform duration-200 ${showingUserMenu ? 'rotate-180' : ''
+                                                }`}
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                    </button>
+
+                                    <Transition
+                                        show={showingUserMenu}
+                                        enter="transition ease-out duration-150"
+                                        enterFrom="opacity-0 translate-y-1"
+                                        enterTo="opacity-100 translate-y-0"
+                                        leave="transition ease-in duration-100"
+                                        leaveFrom="opacity-100 translate-y-0"
+                                        leaveTo="opacity-0 translate-y-1"
+                                    >
+                                        <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-stone-200 bg-white p-1.5 shadow-lg">
+                                            {currentRole && (
+                                                <div className="px-3 pb-2 pt-1">
+                                                    <span
+                                                        className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${badgeConfig.bg}`}
+                                                    >
+                                                        {badgeConfig.label}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            <Link
+                                                href={route('profile.edit')}
+                                                onClick={() => setShowingUserMenu(false)}
+                                                className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-stone-700 transition hover:bg-amber-50 hover:text-[#1c1210]"
+                                            >
+                                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                    </svg>
+                                                </span>
+                                                Perfil
+                                            </Link>
+
+                                            <div className="my-1 border-t border-stone-100" />
+
+                                            <Link
+                                                href={route('logout')}
+                                                method="post"
+                                                as="button"
+                                                onClick={() => setShowingUserMenu(false)}
+                                                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-start text-sm text-red-600 transition hover:bg-red-50 hover:text-red-700"
+                                            >
+                                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3H21" />
+                                                    </svg>
+                                                </span>
+                                                Cerrar Sesión
+                                            </Link>
+                                        </div>
+                                    </Transition>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <main scroll-region="" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                    {children}
+                </main>
             </div>
         </div>
     );

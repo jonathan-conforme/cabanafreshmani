@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,6 +51,15 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Sin este corte, el unico administrador puede borrarse a si mismo y
+        // dejar el sistema sin nadie que gestione usuarios, caja ni empresa:
+        // ya no queda forma de recuperarlo desde la interfaz.
+        if ($user->hasRole('administrador') && User::role('administrador')->count() <= 1) {
+            return back()->withErrors([
+                'password' => 'No puedes eliminar la unica cuenta de administrador. Crea otro administrador primero.',
+            ]);
+        }
 
         Auth::logout();
 

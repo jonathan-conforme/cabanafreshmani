@@ -63,32 +63,73 @@ Route::middleware('auth')->group(function () {
     });
     
 
-    // Gestión de Usuarios
-    Route::middleware('can:ver_usuarios')->group(function () {
-        Route::resource('users', UserController::class);
+    // Gestión de Usuarios: solo el administrador. La vista expone los datos de
+    // todos los empleados y el catalogo completo de permisos, asi que el permiso
+    // ver_usuarios por si solo no alcanza. 'show' no existe en el controlador:
+    // registrarla dejaba una ruta que reventaba con 500.
+    Route::middleware(['can:ver_usuarios', 'role:administrador'])->group(function () {
+        Route::resource('users', UserController::class)
+            ->except(['show'])
+            ->middlewareFor(['create', 'store'], 'can:crear_usuarios')
+            ->middlewareFor(['edit', 'update'], 'can:editar_usuarios')
+            ->middlewareFor('destroy', 'can:eliminar_usuarios');
     });
 
-    // Clientes
+    // Clientes. El grupo exige acceso al modulo; cada verbo de escritura pide
+    // ademas su propio permiso.
     Route::middleware('can:ver_clientes')->group(function () {
-        Route::resource('clientes', ClienteController::class)->parameters(['clientes' => 'cliente']);
+        Route::resource('clientes', ClienteController::class)
+            ->parameters(['clientes' => 'cliente'])
+            ->middlewareFor(['create', 'store'], 'can:crear_clientes')
+            ->middlewareFor(['edit', 'update'], 'can:editar_clientes')
+            ->middlewareFor('destroy', 'can:eliminar_clientes');
     });
 
     // Proveedores
     Route::middleware('can:ver_proveedores')->group(function () {
-        Route::resource('proveedores', ProveedorController::class)->parameters(['proveedores' => 'proveedor']);
+        Route::resource('proveedores', ProveedorController::class)
+            ->parameters(['proveedores' => 'proveedor'])
+            ->middlewareFor(['create', 'store'], 'can:crear_proveedores')
+            ->middlewareFor(['edit', 'update'], 'can:editar_proveedores')
+            ->middlewareFor('destroy', 'can:eliminar_proveedores');
     });
 
-    // Productos y Unidades de Medida
+    // Productos y Unidades de Medida. Ambos se editan desde modales, por eso los
+    // controladores no tienen create/show/edit: esas rutas del resource apuntaban
+    // a metodos inexistentes y respondian 500.
     Route::middleware('can:ver_productos')->group(function () {
-        Route::resource('productos', ProductoController::class)->parameters(['productos' => 'producto']);
-        Route::resource('unidad-medidas', UnidadMedidaController::class)->parameters(['unidad-medidas' => 'unidad_medida']);
-        Route::patch('/productos/{producto}/toggle-estado', [ProductoController::class, 'toggleEstado'])->name('productos.toggleEstado');
+        Route::resource('productos', ProductoController::class)
+            ->parameters(['productos' => 'producto'])
+            ->except(['create', 'show', 'edit'])
+            ->middlewareFor('store', 'can:crear_productos')
+            ->middlewareFor('update', 'can:editar_productos')
+            ->middlewareFor('destroy', 'can:eliminar_productos');
+
+        Route::resource('unidad-medidas', UnidadMedidaController::class)
+            ->parameters(['unidad-medidas' => 'unidad_medida'])
+            ->except(['create', 'show', 'edit'])
+            ->middlewareFor('store', 'can:crear_productos')
+            ->middlewareFor('update', 'can:editar_productos')
+            ->middlewareFor('destroy', 'can:eliminar_productos');
+
+        Route::patch('/productos/{producto}/toggle-estado', [ProductoController::class, 'toggleEstado'])
+            ->middleware('can:editar_productos')
+            ->name('productos.toggleEstado');
     });
 
-    // Compras
+    // Compras. No hay edicion: el controlador no define edit/update, y esas dos
+    // rutas del resource respondian 500 al llamarlas.
     Route::middleware('can:ver_compras')->group(function () {
-        Route::resource('compras', CompraController::class)->parameters(['compras' => 'compra']);
-        Route::post('/compras/{compra}/pagos', [CompraController::class, 'registrarPago'])->name('compras.pagos.store');
+        Route::resource('compras', CompraController::class)
+            ->parameters(['compras' => 'compra'])
+            ->except(['edit', 'update'])
+            ->middlewareFor(['create', 'store'], 'can:crear_compras')
+            ->middlewareFor('destroy', 'can:eliminar_compras');
+
+        // Registrar un abono modifica el saldo del proveedor: es escritura.
+        Route::post('/compras/{compra}/pagos', [CompraController::class, 'registrarPago'])
+            ->middleware('can:crear_compras')
+            ->name('compras.pagos.store');
     });
 
     // Kardex
@@ -99,15 +140,19 @@ Route::middleware('auth')->group(function () {
     // Reportes
     Route::middleware('can:ver_reportes')->group(function () {
         Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
+        Route::get('/reportes/pdf', [ReporteController::class, 'pdf'])->name('reportes.pdf');
     });
 
     // Notificaciones (solo administración: los vendedores no las ven)
     Route::middleware('can:ver_notificaciones')->group(function () {
         Route::get('/notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
-        Route::patch('/notificaciones/leer-todas', [NotificacionController::class, 'marcarTodasLeidas'])->name('notificaciones.leerTodas');
-        Route::delete('/notificaciones/leidas', [NotificacionController::class, 'destroyLeidas'])->name('notificaciones.destroyLeidas');
-        Route::patch('/notificaciones/{notificacion}/leer', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leer');
-        Route::delete('/notificaciones/{notificacion}', [NotificacionController::class, 'destroy'])->name('notificaciones.destroy');
+        // Marcar y descartar cambian estado: van con permiso propio.
+        Route::middleware('can:gestionar_notificaciones')->group(function () {
+            Route::patch('/notificaciones/leer-todas', [NotificacionController::class, 'marcarTodasLeidas'])->name('notificaciones.leerTodas');
+            Route::delete('/notificaciones/leidas', [NotificacionController::class, 'destroyLeidas'])->name('notificaciones.destroyLeidas');
+            Route::patch('/notificaciones/{notificacion}/leer', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leer');
+            Route::delete('/notificaciones/{notificacion}', [NotificacionController::class, 'destroy'])->name('notificaciones.destroy');
+        });
     });
 });
 
@@ -118,8 +163,10 @@ Route::get('/admin/export', [ExportController::class, 'index'])
     ->middleware(['auth', 'role:administrador'])
     ->name('export.index');
 
+// Cada request vuelca la base entera a disco: se limita para que no se pueda
+// usar como palanca de denegacion de servicio.
 Route::get('/export/descargar', [ExportController::class, 'descargar'])
-    ->middleware(['auth', 'role:administrador'])
+    ->middleware(['auth', 'role:administrador', 'throttle:3,1'])
     ->name('export.descargar');
 
 require __DIR__.'/auth.php';

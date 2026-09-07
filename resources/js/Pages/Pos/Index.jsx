@@ -304,24 +304,22 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
 
     return (
         <AuthenticatedLayout
-            header={
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-[#0E7C86]">Módulo POS / Ventas</h2>
-                    <button
-                        onClick={() => setShowCierreModal(true)}
-                        className="flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-100"
-                    >
-                        <Lock size={16} /> Cerrar Caja Activa
-                    </button>
-                </div>
+            header={<h2 className="text-xl font-bold text-[#0E7C86]">Módulo POS / Ventas</h2>}
+            actions={
+                <button
+                    onClick={() => setShowCierreModal(true)}
+                    className="flex items-center gap-2 whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 transition hover:bg-red-100"
+                >
+                    <Lock size={16} /> Cerrar Caja Activa
+                </button>
             }
         >
             <Head title="POS Venta" />
 
-            <div className="grid grid-cols-1 gap-6 p-4 lg:grid-cols-12 lg:p-6">
+            <div className="grid grid-cols-1 gap-6 p-4 lg:h-full lg:min-h-0 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden lg:p-6">
                 {/* LADO IZQUIERDO: CATÁLOGO DE PRODUCTOS (7 COLS) */}
-                <div className="lg:col-span-7">
-                    <div className="mb-4 flex items-center gap-3 rounded-2xl bg-white p-3 border border-[#F0E6C8] shadow-sm">
+                <div className="flex flex-col lg:col-span-7 lg:h-full lg:min-h-0">
+                    <div className="mb-4 flex shrink-0 items-center gap-3 rounded-2xl bg-white p-3 border border-[#F0E6C8] shadow-sm">
                         <Search className="text-[#A3915F]" size={20} />
                         <input
                             ref={searchInputRef}
@@ -334,7 +332,7 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <div className="scrollbar-fina grid max-h-[60vh] grid-cols-2 content-start gap-3 overflow-y-auto pb-1 pr-2 sm:grid-cols-3 lg:max-h-none lg:min-h-0 lg:flex-1">
                         {filteredProducts.map((prod) => (
                             <button
                                 key={prod.id}
@@ -362,8 +360,8 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
                 </div>
 
                 {/* LADO DERECHO: PANEL DE DETALLE DE VENTA Y CARRITO */}
-                <div className="flex flex-col justify-between rounded-2xl border border-[#F0E6C8] bg-white p-5 shadow-lg lg:col-span-5">
-                    <div>
+                <div className="flex flex-col justify-between rounded-2xl border border-[#F0E6C8] bg-white p-5 shadow-lg lg:col-span-5 lg:h-full lg:min-h-0 lg:overflow-hidden">
+                    <div className="flex min-h-0 flex-1 flex-col">
                         <div className="mb-4 space-y-2 border-b border-[#F1EAD5] pb-4">
                             <label className="block text-xs font-bold text-[#8A7A4E]">Cliente:</label>
 
@@ -410,7 +408,7 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
                         </div>
 
                         {/* Listado de Items en Carrito */}
-                        <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1">
+                        <div className="scrollbar-fina max-h-[300px] overflow-y-auto space-y-2 pr-2 lg:max-h-none lg:min-h-0 lg:flex-1">
                             {cart.length === 0 ? (
                                 <p className="py-12 text-center text-xs text-[#A3915F]">No hay productos en la venta actual.</p>
                             ) : (
@@ -443,7 +441,7 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
                     </div>
 
                     {/* Resumen de Cobro, Método de Pago y Vuelto */}
-                    <div className="space-y-3 border-t border-[#F1EAD5] pt-4 mt-4">
+                    <div className="shrink-0 space-y-3 border-t border-[#F1EAD5] pt-4 mt-4">
                         <div>
                             <label className="block mb-1 text-xs font-bold text-[#8A7A4E]">Método de Pago:</label>
                             <div className="grid grid-cols-3 gap-2">

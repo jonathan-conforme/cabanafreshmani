@@ -60,12 +60,9 @@ class ReporteService
         return compact('totales', 'porDia', 'porMetodoPago', 'porVendedor', 'ventas');
     }
 
-    public function resumenCompras(array $filtros): array
+    public function resumenCompras(array $filtros, bool $paraPdf = false): array
     {
-        [$desde, $hasta] = $this->rangoFechas($filtros);
-
-        $baseQuery = Compra::whereDate('fecha_compra', '>=', $desde)
-            ->whereDate('fecha_compra', '<=', $hasta);
+        $baseQuery = $this->queryCompras($filtros);
 
         $totales = (clone $baseQuery)
             ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total, COALESCE(SUM(monto_pagado), 0) as pagado, COALESCE(SUM(total - monto_pagado), 0) as pendiente')
@@ -83,11 +80,11 @@ class ReporteService
             ->groupBy('estado')
             ->get();
 
-        $compras = (clone $baseQuery)
-            ->with(['proveedor:id,nombre'])
-            ->latest('fecha_compra')
-            ->paginate(10, ['*'], 'page')
-            ->withQueryString();
+        $comprasQuery = (clone $baseQuery)->latest('fecha_compra');
+
+        $compras = $paraPdf
+            ? $comprasQuery->with(['proveedor:id,nombre', 'user:id,name'])->get()
+            : $comprasQuery->with(['proveedor:id,nombre'])->paginate(10, ['*'], 'page')->withQueryString();
 
         return compact('totales', 'porProveedor', 'porEstado', 'compras');
     }
@@ -137,27 +134,12 @@ class ReporteService
     }
 
     /**
-     * Cuentas por cobrar: ventas a credito registradas en el rango.
-     * Se agrupan por cliente para ver a quien se le debe reclamar el dinero.
+     * Cuentas por cobrar: ventas a crédito o pendientes de cobro. Sin rango de
+     * fechas devuelve a todos los clientes con saldo.
      */
-    /**
-     * Cuentas por cobrar: ventas a crédito o pendientes de cobro.
-     */
-    public function cuentasPorCobrar(array $filtros): array
+    public function cuentasPorCobrar(array $filtros, bool $paraPdf = false): array
     {
-        // Consulta base ajustada a tu base de datos real
-        $baseQuery = Venta::where(function($query) {
-            $query->where('metodo_pago', 'credito')
-                  ->orWhere('estado', 'pendiente');
-        });
-
-        // Aplicamos el filtro de fechas opcionalmente si se especificó
-        if (!empty($filtros['desde'])) {
-            $baseQuery->whereDate('ventas.created_at', '>=', $filtros['desde']);
-        }
-        if (!empty($filtros['hasta'])) {
-            $baseQuery->whereDate('ventas.created_at', '<=', $filtros['hasta']);
-        }
+        $baseQuery = $this->queryCuentasPorCobrar($filtros);
 
         $totales = (clone $baseQuery)
             ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(total - pago_con), SUM(total)) as total, COALESCE(AVG(total), 0) as promedio')
@@ -183,22 +165,20 @@ class ReporteService
             ->orderByDesc('total')
             ->get();
 
-       $ventasCredito = (clone $baseQuery)
+        $ventasCreditoQuery = (clone $baseQuery)
             ->with(['user:id,name', 'cliente:id,nombre,apellido,identificacion,telefono', 'pagos'])
-            ->latest()
-            ->paginate(10, ['*'], 'page')
-            ->withQueryString();
+            ->latest();
+
+        $ventasCredito = $paraPdf
+            ? $ventasCreditoQuery->get()
+            : $ventasCreditoQuery->paginate(10, ['*'], 'page')->withQueryString();
 
         return compact('totales', 'porCliente', 'ventasCredito');
     }
 
-    public function historialCierresCaja(array $filtros): array
+    public function historialCierresCaja(array $filtros, bool $paraPdf = false): array
     {
-        [$desde, $hasta] = $this->rangoFechas($filtros);
-
-        $baseQuery = Caja::where('estado', 'cerrada')
-            ->whereDate('fecha_cierre', '>=', $desde)
-            ->whereDate('fecha_cierre', '<=', $hasta);
+        $baseQuery = $this->queryCierresCaja($filtros);
 
         $totales = (clone $baseQuery)
             ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(monto_apertura), 0) as total_apertura, COALESCE(SUM(monto_cierre), 0) as total_cierre, COALESCE(SUM(diferencia), 0) as total_diferencia')
@@ -211,12 +191,72 @@ class ReporteService
             ->orderByDesc('cantidad')
             ->get();
 
-        $cierresCaja = (clone $baseQuery)
+        $cierresQuery = (clone $baseQuery)
             ->with('user:id,name')
-            ->latest('fecha_cierre')
-            ->paginate(10, ['*'], 'page')
-            ->withQueryString();
+            ->latest('fecha_cierre');
+
+        $cierresCaja = $paraPdf
+            ? $cierresQuery->get()
+            : $cierresQuery->paginate(10, ['*'], 'page')->withQueryString();
 
         return compact('totales', 'porUsuario', 'cierresCaja');
+    }
+
+    // ---------------------------------------------------------
+    // Consultas base reutilizadas por los reportes y sus PDF
+    // ---------------------------------------------------------
+
+    protected function queryCompras(array $filtros)
+    {
+        [$desde, $hasta] = $this->rangoFechas($filtros);
+
+        return Compra::whereDate('fecha_compra', '>=', $desde)
+            ->whereDate('fecha_compra', '<=', $hasta);
+    }
+
+    protected function queryCierresCaja(array $filtros)
+    {
+        [$desde, $hasta] = $this->rangoFechas($filtros);
+
+        return Caja::where('estado', 'cerrada')
+            ->whereDate('fecha_cierre', '>=', $desde)
+            ->whereDate('fecha_cierre', '<=', $hasta);
+    }
+
+    /**
+     * El rango de fechas es opcional: si no se envia, se listan todas las
+     * deudas vigentes (una deuda sigue viva aunque la venta sea antigua).
+     */
+    protected function queryCuentasPorCobrar(array $filtros)
+    {
+        $query = Venta::where(function ($q) {
+            $q->where('metodo_pago', 'credito')
+              ->orWhere('estado', 'pendiente');
+        });
+
+        if (!empty($filtros['desde'])) {
+            $query->whereDate('ventas.created_at', '>=', $filtros['desde']);
+        }
+
+        if (!empty($filtros['hasta'])) {
+            $query->whereDate('ventas.created_at', '<=', $filtros['hasta']);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Mismos datos del reporte en pantalla, pero con el detalle completo
+     * (sin paginar) para poder exportarlo a PDF.
+     */
+    public function datosPdf(string $tipo, array $filtros): array
+    {
+        return match ($tipo) {
+            'compras' => $this->resumenCompras($filtros, true),
+            'inventario' => $this->resumenInventario($filtros),
+            'caja' => $this->historialCierresCaja($filtros, true),
+            'cuentas_cobrar' => $this->cuentasPorCobrar($filtros, true),
+            default => throw new \InvalidArgumentException("Tipo de reporte no exportable: {$tipo}"),
+        };
     }
 }
