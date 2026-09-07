@@ -316,9 +316,9 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
         >
             <Head title="POS Venta" />
 
-            <div className="grid grid-cols-1 gap-6 p-4 lg:h-full lg:min-h-0 lg:grid-cols-12 lg:overflow-hidden lg:p-6">
+            <div className="grid grid-cols-1 gap-6 p-4 lg:h-full lg:min-h-0 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden lg:p-6">
                 {/* LADO IZQUIERDO: CATÁLOGO DE PRODUCTOS (7 COLS) */}
-                <div className="flex flex-col lg:col-span-7 lg:min-h-0">
+                <div className="flex flex-col lg:col-span-7 lg:h-full lg:min-h-0">
                     <div className="mb-4 flex shrink-0 items-center gap-3 rounded-2xl bg-white p-3 border border-[#F0E6C8] shadow-sm">
                         <Search className="text-[#A3915F]" size={20} />
                         <input
@@ -332,7 +332,7 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
                         />
                     </div>
 
-                    <div className="scrollbar-fina grid grid-cols-2 gap-3 sm:grid-cols-3 lg:min-h-0 lg:flex-1 lg:content-start lg:overflow-y-auto lg:pb-1 lg:pr-2">
+                    <div className="scrollbar-fina grid max-h-[60vh] grid-cols-2 content-start gap-3 overflow-y-auto pb-1 pr-2 sm:grid-cols-3 lg:max-h-none lg:min-h-0 lg:flex-1">
                         {filteredProducts.map((prod) => (
                             <button
                                 key={prod.id}
@@ -360,7 +360,7 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
                 </div>
 
                 {/* LADO DERECHO: PANEL DE DETALLE DE VENTA Y CARRITO */}
-                <div className="flex flex-col justify-between rounded-2xl border border-[#F0E6C8] bg-white p-5 shadow-lg lg:col-span-5 lg:min-h-0 lg:overflow-hidden">
+                <div className="flex flex-col justify-between rounded-2xl border border-[#F0E6C8] bg-white p-5 shadow-lg lg:col-span-5 lg:h-full lg:min-h-0 lg:overflow-hidden">
                     <div className="flex min-h-0 flex-1 flex-col">
                         <div className="mb-4 space-y-2 border-b border-[#F1EAD5] pb-4">
                             <label className="block text-xs font-bold text-[#8A7A4E]">Cliente:</label>
