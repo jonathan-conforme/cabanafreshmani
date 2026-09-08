@@ -86,7 +86,7 @@
                 margin: 0 !important;
                 padding: 2mm 0 0 0 !important;
                 font-size: 11px;
-                transform: none !important; /* Se eliminó el corte superior */
+                transform: none !important;
             }
 
             .ticket {
@@ -110,11 +110,14 @@
     <div class="ticket">
         <!-- LOGO Y ENCABEZADO EMPRESA -->
         <div class="text-center">
-            @if(file_exists(public_path('images/cabana-fresh-mani-logo.png')))
-                <img src="{{ asset('images/cabana-fresh-mani-logo.png') }}" alt="Logo" class="logo">
-            @elseif(!empty($empresa->logo))
-                <img src="{{ public_path('storage/' . $empresa->logo) }}" class="logo">
-            @endif
+          @php
+    $logoPath = public_path('images/cabana-fresh-mani-logo.png');
+    $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : null;
+@endphp
+
+@if($logoBase64)
+    <img src="{{ $logoBase64 }}" alt="Logo" class="logo">
+@endif
 
             <div class="bold" style="font-size: 12px;">{{ $empresa->nombre_comercial ?? $empresa->razon_social ?? 'CABANA FRESHMANI' }}</div>
             @if(!empty($empresa->razon_social) && $empresa->razon_social !== $empresa->nombre_comercial)
@@ -127,14 +130,23 @@
             @if(isset($empresa->obligado_contabilidad)) <div>Obligado a llevar contabilidad: {{ $empresa->obligado_contabilidad ? 'SI' : 'NO' }}</div> @endif
         </div>
 
+        <!-- BANNER AVISO MODO LOCAL / PRUEBAS -->
+        @if(($empresa->ambiente_sri ?? '0') === '0')
+            <div class="divider"></div>
+            <div class="text-center bold" style="font-size: 10px; border: 1px solid #000; padding: 3px 1px; margin: 3px 0;">
+                *** DOCUMENTO SIN VALOR TRIBUTARIO ***<br>
+                COMPROBANTE INTERNO DE PRUEBAS
+            </div>
+        @endif
+
         <div class="divider"></div>
 
         <!-- DATOS DEL COMPROBANTE -->
         <div class="text-center">
-            @if(!empty($venta->numero_factura))
+            @if(!empty($venta->numero_factura) && ($empresa->ambiente_sri ?? '0') !== '0')
                 <div class="bold" style="font-size: 12px;">FACTURA N°: {{ $venta->numero_factura }}</div>
             @else
-                <div class="bold" style="font-size: 12px;">TICKET N°: {{ str_pad($venta->id, 8, '0', STR_PAD_LEFT) }}</div>
+                <div class="bold" style="font-size: 12px;">TICKET INTERNO N°: {{ str_pad($venta->id, 8, '0', STR_PAD_LEFT) }}</div>
             @endif
             <div>Fecha: {{ $venta->created_at->format('d/m/Y H:i') }}</div>
         </div>
@@ -230,7 +242,7 @@
                     @foreach($venta->pagos as $pago)
                     <tr>
                         <td class="text-left">
-                            {{ $loop->iteration }}° ({{ $pago->created_at->format('d/m/Y') }})
+                            {{ $loop.iteration }}° ({{ $pago->created_at->format('d/m/Y') }})
                         </td>
                         <td class="text-right">${{ number_format($pago->monto, 2) }}</td>
                     </tr>
@@ -239,13 +251,21 @@
             </table>
         @endif
 
-        <!-- CLAVE DE ACCESO SRI (SI EXISTE) -->
-        @if(!empty($venta->clave_acceso))
+        <!-- CLAVE DE ACCESO SRI O MODO LOCAL -->
+        @if(!empty($venta->clave_acceso) && ($empresa->ambiente_sri ?? '0') !== '0')
             <div class="divider"></div>
             <div class="text-center">
                 <div class="bold">CLAVE DE ACCESO / SRI:</div>
                 <div class="clave-acceso">{{ $venta->clave_acceso }}</div>
                 <div>Estado: {{ strtoupper($venta->sri_estado ?? 'PENDIENTE') }}</div>
+                <div class="bold">[ MODO LOCAL / PRUEBA ]</div>
+                <div>Comprobante no enviado al SRI.</div>
+            </div>
+        @elseif(($empresa->ambiente_sri ?? '0') === '0')
+            <div class="divider"></div>
+            <div class="text-center" style="font-size: 9px; margin-top: 2px;">
+                <div class="bold">[ MODO LOCAL / PRUEBA ]</div>
+                <div>Comprobante no enviado al SRI.</div>
             </div>
         @endif
 
@@ -259,10 +279,11 @@
     </div>
 
     <script>
-        window.onload = function() {
-            window.print();
-        };
-    </script>
+    document.addEventListener('DOMContentLoaded', function() {
+        window.print();
+    });
+</script>
 </body>
 
 </html>
+

@@ -359,162 +359,136 @@ export default function PosIndex({ productos, clientes, caja, ventasEfectivoSum 
                     </div>
                 </div>
 
-                {/* LADO DERECHO: PANEL DE DETALLE DE VENTA Y CARRITO */}
-                <div className="flex flex-col justify-between rounded-2xl border border-[#F0E6C8] bg-white p-5 shadow-lg lg:col-span-5 lg:h-full lg:min-h-0 lg:overflow-hidden">
-                    <div className="flex min-h-0 flex-1 flex-col">
-                        <div className="mb-4 space-y-2 border-b border-[#F1EAD5] pb-4">
-                            <label className="block text-xs font-bold text-[#8A7A4E]">Cliente:</label>
+               {/* LADO DERECHO: PANEL DE COBRO INTEGRADO */}
+<div className="flex flex-col justify-between rounded-2xl border border-[#F0E6C8] bg-white p-4 shadow-lg lg:col-span-5 lg:h-full lg:min-h-0 lg:overflow-hidden">
 
-                            <div className="flex items-center gap-2">
-                                <div className="relative flex-1">
-                                    <input
-                                        type="text"
-                                        value={clienteSearch}
-                                        onChange={(e) => setClienteSearch(e.target.value)}
-                                        onKeyDown={handleClienteSearchKeyDown}
-                                        placeholder="Buscar por Cédula o Nombre..."
-                                        className="w-full rounded-xl border border-[#E5DCC0] bg-[#FFFDF6] pl-3 pr-8 py-1.5 text-xs text-[#3F3A2E] outline-none"
-                                    />
-                                    {clienteSearch && (
-                                        <button
-                                            onClick={() => setClienteSearch('')}
-                                            className="absolute right-2 top-2 text-[10px] font-bold text-[#A3915F]"
-                                        >
-                                            ✕
-                                        </button>
-                                    )}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowClientModal(true)}
-                                    className="rounded-xl bg-[#0E7C86] p-2 text-white transition hover:brightness-110"
-                                    title="Registrar nuevo cliente"
-                                >
-                                    <UserPlus size={16} />
-                                </button>
-                            </div>
+    {/* 1. CABECERA: SELECCIÓN DE CLIENTE COMPACTA */}
+    <div className="shrink-0 pb-3 border-b border-[#F1EAD5] space-y-2">
+        <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-[#8A7A4E]">Cliente Seleccionado</label>
+            <button
+                type="button"
+                onClick={() => setShowClientModal(true)}
+                className="flex items-center gap-1 text-xs font-bold text-[#0E7C86] hover:underline"
+            >
+                <UserPlus size={14} /> + Nuevo
+            </button>
+        </div>
 
-                            <select
-                                value={clienteId}
-                                onChange={(e) => setClienteId(e.target.value)}
-                                className="w-full rounded-xl border border-[#E5DCC0] bg-[#FFFDF6] px-3 py-2 text-sm text-[#3F3A2E] outline-none"
-                            >
-                                {filteredClientes.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.nombre} {c.apellido} ({c.identificacion || 'Sin ID'})
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+        {/* Unificación de Búsqueda y Selector en una sola fila */}
+        <div className="flex gap-2">
+            <input
+                type="text"
+                value={clienteSearch}
+                onChange={(e) => setClienteSearch(e.target.value)}
+                onKeyDown={handleClienteSearchKeyDown}
+                placeholder="Cédula / Nombre..."
+                className="w-1/2 rounded-xl border border-[#E5DCC0] bg-[#FFFDF6] px-3 py-1.5 text-xs outline-none focus:border-[#0E7C86]"
+            />
+            <select
+                value={clienteId}
+                onChange={(e) => setClienteId(e.target.value)}
+                className="w-1/2 rounded-xl border border-[#E5DCC0] bg-[#FFFDF6] px-2 py-1.5 text-xs text-[#3F3A2E] outline-none"
+            >
+                {filteredClientes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                        {c.nombre} {c.apellido}
+                    </option>
+                ))}
+            </select>
+        </div>
+    </div>
 
-                        {/* Listado de Items en Carrito */}
-                        <div className="scrollbar-fina max-h-[300px] overflow-y-auto space-y-2 pr-2 lg:max-h-none lg:min-h-0 lg:flex-1">
-                            {cart.length === 0 ? (
-                                <p className="py-12 text-center text-xs text-[#A3915F]">No hay productos en la venta actual.</p>
-                            ) : (
-                                cart.map((item, idx) => (
-                                    <div key={idx} className="flex items-center justify-between rounded-xl bg-[#FFFBEF] p-3 text-xs border border-[#F1EAD5]">
-                                        <div>
-                                            <p className="font-bold text-[#2F2A20]">{item.nombre}</p>
-                                            <p className="text-[#8A7A4E]">
-                                                {item.tipo_venta === 'monto_exacto' ? (
-                                                    `Monto exacto ($${formatMoney(item.subtotal)}) ~ ${formatMoney(item.cantidad)} Lb`
-                                                ) : item.tipo_venta === 'quintal' ? (
-                                                    `${item.cantidad_usuario} Qq (${formatMoney(item.cantidad)} Lb) x $${formatMoney(item.precio_unitario)}/lb`
-                                                ) : item.tipo_venta === 'saco_50' ? (
-                                                    `${item.cantidad_usuario} Saco(s) (${formatMoney(item.cantidad)} Lb) x $${formatMoney(item.precio_unitario)}/lb`
-                                                ) : (
-                                                    `${formatMoney(item.cantidad)} Lb x $${formatMoney(item.precio_unitario)}/lb`
-                                                )}
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="font-extrabold text-[#0E7C86]">${formatMoney(item.subtotal)}</span>
-                                            <button onClick={() => handleRemoveFromCart(idx)} className="text-red-500 hover:text-red-700">
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
+    {/* 2. CENTRO: LISTA DEL CARRITO (OCUPA TODO EL ESPACIO RESTANTE) */}
+    <div className="flex-1 min-h-0 my-3 overflow-y-auto scrollbar-fina space-y-2 pr-1">
+        {cart.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-[#A3915F] text-xs">
+                <Package size={32} className="mb-2 opacity-50" />
+                <p>Carrito vacío</p>
+            </div>
+        ) : (
+            cart.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between rounded-xl bg-[#FFFBEF] p-2.5 text-xs border border-[#F1EAD5]">
+                    <div className="truncate pr-2">
+                        <p className="font-bold text-[#2F2A20] truncate">{item.nombre}</p>
+                        <p className="text-[11px] text-[#8A7A4E]">
+                            {item.cantidad_usuario}x @ ${formatMoney(item.precio_unitario)}
+                        </p>
                     </div>
-
-                    {/* Resumen de Cobro, Método de Pago y Vuelto */}
-                    <div className="shrink-0 space-y-3 border-t border-[#F1EAD5] pt-4 mt-4">
-                        <div>
-                            <label className="block mb-1 text-xs font-bold text-[#8A7A4E]">Método de Pago:</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setMetodoPago('efectivo')}
-                                    className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-bold ${metodoPago === 'efectivo'
-                                        ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
-                                        : 'border-[#E5DCC0] bg-white text-[#7A6A45]'
-                                        }`}
-                                >
-                                    <Banknote size={16} /> Efectivo
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setMetodoPago('transferencia')}
-                                    className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-bold ${metodoPago === 'transferencia'
-                                        ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
-                                        : 'border-[#E5DCC0] bg-white text-[#7A6A45]'
-                                        }`}
-                                >
-                                    <ArrowRightLeft size={16} /> Transf.
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setMetodoPago('credito')}
-                                    className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-bold ${metodoPago === 'credito'
-                                        ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
-                                        : 'border-[#E5DCC0] bg-white text-[#7A6A45]'
-                                        }`}
-                                >
-                                    <CreditCard size={16} /> Crédito
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-between text-base font-black text-[#0E7C86]">
-                            <span>TOTAL A PAGAR:</span>
-                            <span>${formatMoney(totalGeneral)}</span>
-                        </div>
-
-                        {metodoPago === 'efectivo' && (
-                            <div className="space-y-2">
-                                <label className="block text-xs font-bold text-[#8A7A4E]">Dinero Entregado por el Cliente:</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-2.5 text-gray-500 font-bold">$</span>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={montoEntregado}
-                                        onChange={(e) => setMontoEntregado(e.target.value)}
-                                        placeholder="0.00"
-                                        className="w-full rounded-xl border border-[#E0D8C3] pl-7 pr-3 py-2 text-sm font-bold text-[#2F2A20] focus:border-[#0E7C86] focus:ring-[#0E7C86]"
-                                    />
-                                </div>
-
-                                <div className="flex justify-between items-center bg-[#EBF7F7] p-3 rounded-xl border border-[#BCE3E5]">
-                                    <span className="text-xs font-extrabold text-[#0E7C86]">VUELTO / CAMBIO:</span>
-                                    <span className="text-lg font-black text-[#0E7C86]">${formatMoney(vueltoCalculado)}</span>
-                                </div>
-                            </div>
-                        )}
-
-                        <button
-                            type="button"
-                            onClick={handleProcesarVenta}
-                            disabled={cart.length === 0 || (metodoPago === 'efectivo' && Number(montoEntregado) < totalGeneral)}
-                            className="w-full rounded-xl bg-[#0E7C86] py-3 text-sm font-extrabold text-white shadow-md hover:bg-[#0B646C] disabled:opacity-50"
-                        >
-                            Completar Venta
+                    <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-extrabold text-[#0E7C86]">${formatMoney(item.subtotal)}</span>
+                        <button onClick={() => handleRemoveFromCart(idx)} className="text-red-400 hover:text-red-600">
+                            <Trash2 size={15} />
                         </button>
                     </div>
                 </div>
+            ))
+        )}
+    </div>
+
+    {/* 3. PIE: TOTAL Y MÉTODOS DE PAGO (SIEMPRE VISIBLE) */}
+    <div className="shrink-0 border-t border-[#F1EAD5] pt-3 space-y-3 bg-white">
+
+        {/* Selector de Método de Pago */}
+        <div className="grid grid-cols-3 gap-1.5">
+            {[
+                { id: 'efectivo', label: 'Efectivo', icon: Banknote },
+                { id: 'transferencia', label: 'Transf.', icon: ArrowRightLeft },
+                { id: 'credito', label: 'Crédito', icon: CreditCard }
+            ].map((m) => (
+                <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setMetodoPago(m.id)}
+                    className={`flex items-center justify-center gap-1 rounded-xl border py-1.5 text-xs font-bold transition-all ${
+                        metodoPago === m.id
+                            ? 'border-[#0E7C86] bg-[#DFF3EF] text-[#0E7C86]'
+                            : 'border-[#E5DCC0] bg-white text-[#7A6A45]'
+                    }`}
+                >
+                    <m.icon size={14} /> {m.label}
+                </button>
+            ))}
+        </div>
+
+        {/* Input de Efectivo y Vuelto si aplica */}
+        {metodoPago === 'efectivo' && (
+            <div className="grid grid-cols-2 gap-2 bg-[#EBF7F7] p-2 rounded-xl border border-[#BCE3E5]">
+                <div>
+                    <label className="block text-[10px] font-bold text-[#0E7C86] uppercase">Paga Con ($):</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        value={montoEntregado}
+                        onChange={(e) => setMontoEntregado(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full rounded-lg border border-[#BCE3E5] bg-white px-2 py-1 text-xs font-bold text-[#2F2A20] outline-none"
+                    />
+                </div>
+                <div className="flex flex-col justify-center text-right">
+                    <span className="text-[10px] font-bold text-[#0E7C86] uppercase">Vuelto:</span>
+                    <span className="text-sm font-black text-[#0E7C86]">${formatMoney(vueltoCalculado)}</span>
+                </div>
+            </div>
+        )}
+
+        {/* Bloque Total A Pagar */}
+        <div className="flex justify-between items-center bg-[#2F2A20] text-white p-3 rounded-xl shadow-inner">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#DFF3EF]">Total a Cobrar</span>
+            <span className="text-xl font-black text-white">${formatMoney(totalGeneral)}</span>
+        </div>
+
+        {/* Botón de Acción Principal */}
+        <button
+            type="button"
+            onClick={handleProcesarVenta}
+            disabled={cart.length === 0 || (metodoPago === 'efectivo' && Number(montoEntregado) < totalGeneral)}
+            className="w-full rounded-xl bg-[#0E7C86] py-3 cursor-pointer text-xs font-extrabold uppercase tracking-wider text-white shadow-md hover:bg-[#0B646C] disabled:opacity-40 transition-all"
+        >
+            Completar Venta
+        </button>
+    </div>
+</div>
             </div>
 
             {/* MODAL DE AGREGAR PRODUCTO */}
