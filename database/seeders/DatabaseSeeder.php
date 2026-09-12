@@ -18,10 +18,10 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             UnidadMedidaSeeder::class,
-            ClienteSeeder::class,
-            ProveedorSeeder::class,
-            ProductoSeeder::class,
-            
+            //ClienteSeeder::class,
+            //ProveedorSeeder::class,
+            //ProductoSeeder::class,
+
         ]);
 
         // 2. Leer credenciales directamente desde el .env
