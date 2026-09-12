@@ -108,8 +108,9 @@
 
 <body>
     <div class="ticket">
-        <!-- LOGO Y ENCABEZADO EMPRESA -->
+
         <div class="text-center">
+            <!-- LOGO Y ENCABEZADO EMPRESA -->
           @php
     $logoPath = public_path('images/cabana-fresh-mani-logo.png');
     $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : null;
@@ -183,7 +184,7 @@
                 </tr>
                 <tr>
                     <td colspan="2">
-                        {{ number_format($detalle->cantidad, 2) }} ({{ $detalle->producto->unidadMedida->nombre ?? 'unid' }})
+                        {{ number_format($detalle->cantidad, 2) }} ({{ $detalle->producto->unidad->nombre ?? 'unid' }})
                     </td>
                     <td class="text-right">${{ number_format($detalle->precio_unitario, 2) }}</td>
                     <td class="text-right">${{ number_format($detalle->subtotal, 2) }}</td>
@@ -242,7 +243,7 @@
                     @foreach($venta->pagos as $pago)
                     <tr>
                         <td class="text-left">
-                            {{ $loop.iteration }}° ({{ $pago->created_at->format('d/m/Y') }})
+                            {{ $loop->iteration }}° ({{ $pago->created_at->format('d/m/Y') }})
                         </td>
                         <td class="text-right">${{ number_format($pago->monto, 2) }}</td>
                     </tr>
@@ -278,10 +279,15 @@
         </div>
     </div>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        window.print();
-    });
+   <script>
+    // Evita la duplicación de órdenes de impresión
+    // Si la página se abre sola en una pestaña nueva, imprime al cargar.
+    // Si se carga dentro del iframe invisible del POS, React controla la impresión.
+    if (window.self === window.top) {
+        window.addEventListener('load', function() {
+            window.print();
+        });
+    }
 </script>
 </body>
 

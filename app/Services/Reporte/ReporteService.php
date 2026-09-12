@@ -4,6 +4,7 @@ namespace App\Services\Reporte;
 
 use App\Models\Caja;
 use App\Models\Compra;
+use App\Models\EgresoCaja;
 use App\Models\MovimientoInventario;
 use App\Models\Producto;
 use App\Models\Venta;
@@ -22,39 +23,44 @@ class ReporteService
 
     public function resumenVentas(array $filtros): array
     {
-        [$desde, $hasta] = $this->rangoFechas($filtros);
+        $limite = (int) ($filtros['limite'] ?? 15);
+        $query = Venta::where('ventas.estado', 'completada');
 
-        $baseQuery = Venta::whereDate('ventas.created_at', '>=', $desde)
-            ->whereDate('ventas.created_at', '<=', $hasta)
-            ->where('ventas.estado', 'completada');
+        // Filtra fechas solo si el usuario no presiona "Ver Todo"
+        if (! empty($filtros['desde'])) {
+            $query->whereDate('ventas.created_at', '>=', $filtros['desde']);
+        }
+        if (! empty($filtros['hasta'])) {
+            $query->whereDate('ventas.created_at', '<=', $filtros['hasta']);
+        }
 
-        $totales = (clone $baseQuery)
+        $totales = (clone $query)
             ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total, COALESCE(AVG(total), 0) as promedio')
             ->first();
 
-        $porDia = (clone $baseQuery)
+        $porDia = (clone $query)
             ->selectRaw('DATE(ventas.created_at) as fecha, COUNT(*) as cantidad, SUM(total) as total')
             ->groupBy('fecha')
             ->orderBy('fecha')
             ->get();
 
-        $porMetodoPago = (clone $baseQuery)
+        $porMetodoPago = (clone $query)
             ->selectRaw('metodo_pago, COUNT(*) as cantidad, SUM(total) as total')
             ->groupBy('metodo_pago')
             ->orderByDesc('total')
             ->get();
 
-        $porVendedor = (clone $baseQuery)
+        $porVendedor = (clone $query)
             ->join('users', 'users.id', '=', 'ventas.user_id')
             ->selectRaw('users.id, users.name, COUNT(ventas.id) as cantidad, SUM(ventas.total) as total')
             ->groupBy('users.id', 'users.name')
             ->orderByDesc('total')
             ->get();
 
-        $ventas = (clone $baseQuery)
+        $ventas = (clone $query)
             ->with(['user:id,name', 'cliente:id,nombre'])
             ->latest()
-            ->paginate(10, ['*'], 'page')
+            ->paginate($limite, ['*'], 'page')
             ->withQueryString();
 
         return compact('totales', 'porDia', 'porMetodoPago', 'porVendedor', 'ventas');
@@ -84,7 +90,7 @@ class ReporteService
 
         $compras = $paraPdf
             ? $comprasQuery->with(['proveedor:id,nombre', 'user:id,name'])->get()
-            : $comprasQuery->with(['proveedor:id,nombre'])->paginate(10, ['*'], 'page')->withQueryString();
+            : $comprasQuery->with(['proveedor:id,nombre'])->paginate(15, ['*'], 'page')->withQueryString();
 
         return compact('totales', 'porProveedor', 'porEstado', 'compras');
     }
@@ -171,7 +177,7 @@ class ReporteService
 
         $ventasCredito = $paraPdf
             ? $ventasCreditoQuery->get()
-            : $ventasCreditoQuery->paginate(10, ['*'], 'page')->withQueryString();
+            : $ventasCreditoQuery->paginate(15, ['*'], 'page')->withQueryString();
 
         return compact('totales', 'porCliente', 'ventasCredito');
     }
@@ -181,8 +187,19 @@ class ReporteService
         $baseQuery = $this->queryCierresCaja($filtros);
 
         $totales = (clone $baseQuery)
-            ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(monto_apertura), 0) as total_apertura, COALESCE(SUM(monto_cierre), 0) as total_cierre, COALESCE(SUM(diferencia), 0) as total_diferencia')
+            ->selectRaw('
+            COUNT(*) as cantidad,
+            COALESCE(SUM(monto_apertura), 0) as total_apertura,
+            COALESCE(SUM(monto_cierre), 0) as total_cierre,
+            COALESCE(SUM(diferencia), 0) as total_diferencia
+        ')
             ->first();
+
+        // Sumatoria de egresos registrados en las cajas filtradas
+        $totales->total_egresos = (float) EgresoCaja::whereIn(
+            'caja_id',
+            (clone $baseQuery)->select('cajas.id')
+        )->sum('monto');
 
         $porUsuario = (clone $baseQuery)
             ->join('users', 'users.id', '=', 'cajas.user_id')
@@ -192,12 +209,37 @@ class ReporteService
             ->get();
 
         $cierresQuery = (clone $baseQuery)
-            ->with('user:id,name')
+            ->with(['user:id,name', 'egresos.user:id,name'])
+            ->withSum('egresos as total_egresos', 'monto')
             ->latest('fecha_cierre');
 
         $cierresCaja = $paraPdf
             ? $cierresQuery->get()
-            : $cierresQuery->paginate(10, ['*'], 'page')->withQueryString();
+            : $cierresQuery->paginate(15, ['*'], 'page')->withQueryString();
+
+        $coleccion = $paraPdf ? $cierresCaja : $cierresCaja->getCollection();
+
+        $coleccion->transform(function ($cierre) {
+            $cierre->total_transferencias = (float) \DB::table('ventas')
+                ->where('metodo_pago', 'transferencia')
+                ->where('estado', 'completada')
+                ->where('created_at', '>=', $cierre->fecha_apertura)
+                ->where('created_at', '<=', $cierre->fecha_cierre ?? now())
+                ->sum('total');
+
+            $cierre->total_ventas_efectivo = (float) \DB::table('ventas')
+                ->where('metodo_pago', 'efectivo')
+                ->where('estado', 'completada')
+                ->where('created_at', '>=', $cierre->fecha_apertura)
+                ->where('created_at', '<=', $cierre->fecha_cierre ?? now())
+                ->sum('total');
+
+            return $cierre;
+        });
+        $totales->total_ventas_efectivo = (float) $coleccion->sum('total_ventas_efectivo');
+
+        $totales->total_transferencias = (float) $coleccion->sum('total_transferencias');
+        // =========================================================================
 
         return compact('totales', 'porUsuario', 'cierresCaja');
     }
@@ -231,14 +273,14 @@ class ReporteService
     {
         $query = Venta::where(function ($q) {
             $q->where('metodo_pago', 'credito')
-              ->orWhere('estado', 'pendiente');
+                ->orWhere('estado', 'pendiente');
         });
 
-        if (!empty($filtros['desde'])) {
+        if (! empty($filtros['desde'])) {
             $query->whereDate('ventas.created_at', '>=', $filtros['desde']);
         }
 
-        if (!empty($filtros['hasta'])) {
+        if (! empty($filtros['hasta'])) {
             $query->whereDate('ventas.created_at', '<=', $filtros['hasta']);
         }
 
@@ -252,6 +294,7 @@ class ReporteService
     public function datosPdf(string $tipo, array $filtros): array
     {
         return match ($tipo) {
+            'ventas' => $this->resumenVentas($filtros, true),
             'compras' => $this->resumenCompras($filtros, true),
             'inventario' => $this->resumenInventario($filtros),
             'caja' => $this->historialCierresCaja($filtros, true),

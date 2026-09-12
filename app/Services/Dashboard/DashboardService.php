@@ -8,7 +8,6 @@ use Illuminate\Support\Carbon;
 
 class DashboardService
 {
-    /** Color de cada método de pago para el gráfico de dona. */
     protected const COLORES_METODO = [
         'efectivo' => '#0d9488',
         'tarjeta' => '#1E9EE0',
@@ -16,34 +15,39 @@ class DashboardService
         'credito' => '#ea580c',
     ];
 
-    /**
-     * Arma todas las props que consume la vista Dashboard.
-     */
-    public function paraVista(): array
+    public function paraVista(string $periodo = 'dias'): array
     {
         return [
             'stats' => $this->tarjetasResumen(),
             'invoices' => $this->ventasPorMetodoPago(),
-            'sales' => $this->ventasUltimosDias(14),
+            'sales' => $this->ventasGrafico($periodo),
             'recent' => $this->ventasRecientes(8),
+            'periodo' => $periodo,
         ];
     }
 
-    /**
-     * Totales de ventas completadas dentro de un rango de fechas (inclusive).
-     */
+    private function queryVentas()
+    {
+        $user = auth()->user();
+        $query = Venta::query();
+
+        if ($user && ! $user->hasRole('administrador')) {
+            $query->where('user_id', $user->id);
+        }
+
+        return $query;
+    }
+
     private function totalesVentas(string $desde, string $hasta): object
     {
-        return Venta::whereDate('created_at', '>=', $desde)
+        return $this->queryVentas()
+            ->whereDate('created_at', '>=', $desde)
             ->whereDate('created_at', '<=', $hasta)
             ->where('estado', 'completada')
             ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total, COALESCE(AVG(total), 0) as promedio')
             ->first();
     }
 
-    /**
-     * Variación porcentual entre el periodo actual y el anterior.
-     */
     private function variacion(float $actual, float $anterior): array
     {
         if ($anterior <= 0) {
@@ -112,15 +116,13 @@ class DashboardService
         ];
     }
 
-    /**
-     * Ventas del mes agrupadas por método de pago (para la dona).
-     */
     private function ventasPorMetodoPago(): array
     {
         $inicioMes = Carbon::today()->startOfMonth()->toDateString();
         $hoy = Carbon::today()->toDateString();
 
-        $filas = Venta::whereDate('created_at', '>=', $inicioMes)
+        $filas = $this->queryVentas()
+            ->whereDate('created_at', '>=', $inicioMes)
             ->whereDate('created_at', '<=', $hoy)
             ->where('estado', 'completada')
             ->selectRaw('metodo_pago, COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total')
@@ -142,23 +144,31 @@ class DashboardService
     }
 
     /**
-     * Serie diaria de ventas de los últimos N días (rellena los días sin ventas con 0).
+     * Enrutador de datos según el período seleccionado.
      */
+    private function ventasGrafico(string $periodo): array
+    {
+        return match ($periodo) {
+            'semanas' => $this->ventasUltimasSemanas(8),
+            'meses' => $this->ventasUltimosMeses(12),
+            default => $this->ventasUltimosDias(14),
+        };
+    }
+
     private function ventasUltimosDias(int $dias): array
     {
         $desde = Carbon::today()->subDays($dias - 1);
 
-        $porFecha = Venta::whereDate('created_at', '>=', $desde->toDateString())
+        $porFecha = $this->queryVentas()
+            ->whereDate('created_at', '>=', $desde->toDateString())
             ->where('estado', 'completada')
             ->selectRaw('DATE(created_at) as fecha, COALESCE(SUM(total), 0) as total')
             ->groupBy('fecha')
             ->pluck('total', 'fecha');
 
         $serie = [];
-
         for ($i = 0; $i < $dias; $i++) {
             $dia = $desde->copy()->addDays($i);
-
             $serie[] = [
                 'label' => $dia->format('d/m'),
                 'value' => round((float) ($porFecha[$dia->toDateString()] ?? 0), 2),
@@ -168,12 +178,64 @@ class DashboardService
         return $serie;
     }
 
-    /**
-     * Últimas ventas registradas para la tabla del dashboard.
-     */
+    private function ventasUltimasSemanas(int $semanas): array
+    {
+        $inicio = Carbon::now()->subWeeks($semanas - 1)->startOfWeek();
+        $fin = Carbon::now()->endOfWeek();
+
+        $ventas = $this->queryVentas()
+            ->where('estado', 'completada')
+            ->whereBetween('created_at', [$inicio, $fin])
+            ->get();
+
+        $serie = [];
+        for ($i = 0; $i < $semanas; $i++) {
+            $wStart = $inicio->copy()->addWeeks($i);
+            $wEnd = $wStart->copy()->endOfWeek();
+
+            $total = $ventas->filter(fn ($v) => $v->created_at->between($wStart, $wEnd))->sum('total');
+
+            $serie[] = [
+                'label' => 'Sem '.$wStart->format('d/m'),
+                'value' => round((float) $total, 2),
+            ];
+        }
+
+        return $serie;
+    }
+
+    private function ventasUltimosMeses(int $meses): array
+    {
+        $inicio = Carbon::now()->subMonths($meses - 1)->startOfMonth();
+        $fin = Carbon::now()->endOfMonth();
+
+        $ventas = $this->queryVentas()
+            ->where('estado', 'completada')
+            ->whereBetween('created_at', [$inicio, $fin])
+            ->get();
+
+        $mesesEs = [1 => 'Ene', 2 => 'Feb', 3 => 'Mar', 4 => 'Abr', 5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Ago', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dic'];
+
+        $serie = [];
+        for ($i = 0; $i < $meses; $i++) {
+            $mStart = $inicio->copy()->addMonths($i);
+            $mEnd = $mStart->copy()->endOfMonth();
+
+            $total = $ventas->filter(fn ($v) => $v->created_at->between($mStart, $mEnd))->sum('total');
+
+            $serie[] = [
+                'label' => $mesesEs[$mStart->month].' '.$mStart->format('y'),
+                'value' => round((float) $total, 2),
+            ];
+        }
+
+        return $serie;
+    }
+
     private function ventasRecientes(int $limite): array
     {
-        return Venta::with(['cliente:id,nombre', 'user:id,name'])
+        return $this->queryVentas()
+            ->with(['cliente:id,nombre', 'user:id,name'])
             ->withCount('detalles')
             ->latest()
             ->limit($limite)

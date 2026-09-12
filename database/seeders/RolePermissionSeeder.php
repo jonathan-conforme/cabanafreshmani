@@ -3,10 +3,9 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
-use Spatie\Permission\Models\Permission;
-
 
 class RolePermissionSeeder extends Seeder
 {
@@ -19,21 +18,22 @@ class RolePermissionSeeder extends Seeder
      * Compras no lleva 'editar': el controlador no expone edicion.
      */
     public const MODULOS = [
-        'usuarios' => ['ver', 'crear', 'editar', 'eliminar'],
-        'clientes' => ['ver', 'crear', 'editar', 'eliminar'],
-        'proveedores' => ['ver', 'crear', 'editar', 'eliminar'],
-        'productos' => ['ver', 'crear', 'editar', 'eliminar'],
-        'compras' => ['ver', 'crear', 'eliminar'],
+        'usuarios' => ['ver', 'gestionar'],
+        'clientes' => ['ver', 'gestionar'],
+        'proveedores' => ['ver', 'gestionar'],
+        'productos' => ['ver', 'gestionar'],
+        'compras' => ['ver', 'gestionar'],
         'kardex' => ['ver'],
         'reportes' => ['ver'],
         'notificaciones' => ['ver', 'gestionar'],
+        'empresa' => ['gestionar'],
     ];
 
     /** Permisos que no siguen el patron modulo/accion. */
     public const SUELTOS = [
         'usar_pos',
         'gestionar_caja',
-        'gestionar_empresa',
+        
     ];
 
     /**
@@ -54,7 +54,7 @@ class RolePermissionSeeder extends Seeder
 
     public function run(): void
     {
-       // Resetear la caché de Spatie
+        // Resetear la caché de Spatie
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // 1. Crear los permisos de los módulos
@@ -69,8 +69,13 @@ class RolePermissionSeeder extends Seeder
 
         // 3. Asignar permisos predeterminados a los roles
         $admin->syncPermissions(Permission::all()); // El admin obtiene todos
+        $permisosVendedor = [
+            'usar_pos',
+            'gestionar_caja',
+            
+        ];
 
-        $vendedor->syncPermissions(['usar_pos', 'gestionar_caja']);
-        $vendedorFritada->syncPermissions(['usar_pos', 'gestionar_caja']);
+        $vendedor->syncPermissions($permisosVendedor);
+        $vendedorFritada->syncPermissions($permisosVendedor);
     }
 }

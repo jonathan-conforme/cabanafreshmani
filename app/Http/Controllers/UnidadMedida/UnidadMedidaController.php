@@ -10,6 +10,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use DomainException;
+
 
 class UnidadMedidaController extends Controller
 {
@@ -64,16 +66,14 @@ class UnidadMedidaController extends Controller
             );
     }
 
-    public function destroy(
-        UnidadMedida $unidadMedida
-    ): RedirectResponse {
+   public function destroy(UnidadMedida $unidadMedida): RedirectResponse
+{
+    try {
         $this->unidadMedidaService->delete($unidadMedida);
 
-        return redirect()
-            ->route('unidad-medidas.index')
-            ->with(
-                'success',
-                'Unidad de medida eliminada correctamente.'
-            );
+        return back()->with('success', 'Unidad de medida eliminada exitosamente.');
+    } catch (DomainException $e) {
+        return back()->with('error', $e->getMessage());
     }
+}
 }

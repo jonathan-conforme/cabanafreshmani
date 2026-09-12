@@ -33,16 +33,22 @@ class UserService
     /**
      * Actualizar usuario y sincronizar rol.
      */
-    public function updateUser(User $user, array $data): User
+   public function updateUser(User $user, array $data): User
     {
         return DB::transaction(function () use ($user, $data) {
-            $user->update([
+            $updateData = [
                 'name' => $data['name'],
                 'email' => $data['email'],
-            ]);
+            ];
+
+            // Si se envio contraseña, se encripta; si no, se omite
+            if (!empty($data['password'])) {
+                $updateData['password'] = Hash::make($data['password']);
+            }
+
+            $user->update($updateData);
 
             $user->syncRoles($data['role']);
-            // Sincroniza permisos directos 
             $user->syncPermissions($data['permissions'] ?? []);
 
             return $user->fresh();

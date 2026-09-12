@@ -4,15 +4,12 @@
 
 @section('contenido')
     @php
-        // Muestra el signo antes del simbolo: -$4.50 en lugar de $-4.50
+        // Muestra el signo antes del símbolo: -$4.50 en lugar de $-4.50
         $money = function ($v) {
             $n = (float) $v;
-
             return ($n < 0 ? '-$' : '$') . number_format(abs($n), 2);
         };
 
-        // Mismo cálculo que usa la tabla en pantalla: abonos registrados o, si no
-        // los hay, el pago inicial guardado en la venta.
         $filas = collect($ventasCredito)->map(function ($venta) {
             $abonado = $venta->pagos->count() > 0
                 ? (float) $venta->pagos->sum('monto')
@@ -24,12 +21,24 @@
                 ? (float) $venta->saldo_pendiente
                 : max(0, $total - $abonado);
 
+            if ($saldo <= 0) {
+                $estadoTexto = 'PAGADO';
+                $estadoClase = 'verde';
+            } elseif ($abonado > 0) {
+                $estadoTexto = 'PARCIAL';
+                $estadoClase = 'naranja';
+            } else {
+                $estadoTexto = 'PENDIENTE';
+                $estadoClase = 'rojo';
+            }
+
             return [
                 'venta' => $venta,
                 'total' => $total,
                 'abonado' => $abonado,
                 'saldo' => $saldo,
-                'cancelado' => $venta->estado === 'completada' || $saldo <= 0,
+                'estadoTexto' => $estadoTexto,
+                'estadoClase' => $estadoClase,
             ];
         });
     @endphp
@@ -62,8 +71,8 @@
                 <th>Cliente</th>
                 <th style="width: 14%;">Identificación</th>
                 <th style="width: 12%;">Teléfono</th>
-                <th class="right" style="width: 10%;">N° Ventas</th>
-                <th class="right" style="width: 14%;">Deuda</th>
+                <th class="left" style="width: 10%;">N° Ventas</th>
+                <th class="left" style="width: 14%;">Deuda</th>
             </tr>
         </thead>
         <tbody>
@@ -72,8 +81,8 @@
                     <td>{{ $fila->nombre }}</td>
                     <td>{{ $fila->identificacion ?? '-' }}</td>
                     <td>{{ $fila->telefono ?? '-' }}</td>
-                    <td class="right">{{ $fila->cantidad }}</td>
-                    <td class="right bold naranja">{{ $money($fila->total) }}</td>
+                    <td class="left">{{ $fila->cantidad }}</td>
+                    <td class="left bold naranja">{{ $money($fila->total) }}</td>
                 </tr>
             @empty
                 <tr><td colspan="5" class="vacio">Sin deudas registradas en este rango.</td></tr>
@@ -89,10 +98,10 @@
                 <th style="width: 13%;">Fecha</th>
                 <th>Cliente</th>
                 <th style="width: 12%;">Vendedor</th>
-                <th style="width: 10%;">Estado</th>
-                <th class="right" style="width: 12%;">Total Venta</th>
-                <th class="right" style="width: 12%;">Abonado</th>
-                <th class="right" style="width: 12%;">Saldo</th>
+                <th style="width: 12%;">Estado</th>
+                <th class="left" style="width: 12%;">Total Venta</th>
+                <th class="left" style="width: 12%;">Abonado</th>
+                <th class="left" style="width: 12%;">Saldo</th>
             </tr>
         </thead>
         <tbody>
@@ -108,11 +117,15 @@
                     </td>
                     <td>{{ $venta->user->name ?? '-' }}</td>
                     <td>
-                        <span class="badge">{{ $fila['cancelado'] ? 'Cancelado' : 'Pendiente' }}</span>
+                        <span class="badge {{ $fila['estadoClase'] }}">
+                            {{ $fila['estadoTexto'] }}
+                        </span>
                     </td>
-                    <td class="right">{{ $money($fila['total']) }}</td>
-                    <td class="right verde">{{ $money($fila['abonado']) }}</td>
-                    <td class="right bold naranja">{{ $money($fila['saldo']) }}</td>
+                    <td class="left">{{ $money($fila['total']) }}</td>
+                    <td class="left verde">{{ $money($fila['abonado']) }}</td>
+                    <td class="left bold {{ $fila['saldo'] > 0 ? 'naranja' : '' }}">
+                        {{ $money($fila['saldo']) }}
+                    </td>
                 </tr>
             @empty
                 <tr><td colspan="8" class="vacio">No hay ventas a crédito registradas.</td></tr>
@@ -121,10 +134,10 @@
         @if($filas->isNotEmpty())
             <tfoot>
                 <tr>
-                    <td colspan="5" class="right">Totales</td>
-                    <td class="right">{{ $money($filas->sum('total')) }}</td>
-                    <td class="right">{{ $money($filas->sum('abonado')) }}</td>
-                    <td class="right">{{ $money($filas->sum('saldo')) }}</td>
+                    <td colspan="5" class="right bold">Totales</td>
+                    <td class="left bold">{{ $money($filas->sum('total')) }}</td>
+                    <td class="left bold verde">{{ $money($filas->sum('abonado')) }}</td>
+                    <td class="left bold naranja">{{ $money($filas->sum('saldo')) }}</td>
                 </tr>
             </tfoot>
         @endif

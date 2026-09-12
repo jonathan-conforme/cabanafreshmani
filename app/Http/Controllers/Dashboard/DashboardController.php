@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Dashboard;
 
-use App\Http\Controllers\Controller;
 use App\Services\Dashboard\DashboardService;
-use Inertia\Inertia;
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Inertia\Response;
+use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
@@ -13,8 +14,9 @@ class DashboardController extends Controller
         protected DashboardService $dashboardService
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        return Inertia::render('Dashboard', $this->dashboardService->paraVista());
-    }
+       $periodo = $request->input('periodo', 'dias');
+
+        return Inertia::render('Dashboard', $this->dashboardService->paraVista($periodo));    }
 }

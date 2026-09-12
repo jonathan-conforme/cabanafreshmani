@@ -1,24 +1,24 @@
 <?php
 
 use App\Http\Controllers\Caja\CajaController;
-use App\Http\Controllers\UnidadMedida\UnidadMedidaController;
 use App\Http\Controllers\Cliente\ClienteController;
-use App\Http\Controllers\Compra\CompraController;
-use App\Http\Controllers\Notificacion\NotificacionController;
 use App\Http\Controllers\Cliente\PagoClienteController;
+use App\Http\Controllers\Compra\CompraController;
+use App\Http\Controllers\Configuracion\EmpresaController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\Inventario\KardexController;
+use App\Http\Controllers\Notificacion\NotificacionController;
 use App\Http\Controllers\Pos\PosController;
 use App\Http\Controllers\Producto\ProductoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Proveedor\ProveedorController;
 use App\Http\Controllers\Reporte\ReporteController;
+use App\Http\Controllers\UnidadMedida\UnidadMedidaController;
 use App\Http\Controllers\User\UserController;
 use App\Http\Controllers\Venta\VentaController;
 use App\Http\Middleware\CheckCajaAbierta;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Configuracion\EmpresaController;
 
 Route::redirect('/', '/login');
 
@@ -26,7 +26,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-// Rutas de Perfil (Autenticado genérico)
+// Rutas de Perfil
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -34,7 +34,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // ---------------------------------------------------------
-// RUTAS MÓDULO POR MÓDULO (Escalable por Permisos)
+// RUTAS MÓDULO POR MÓDULO
 // ---------------------------------------------------------
 Route::middleware('auth')->group(function () {
 
@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/caja/apertura', [CajaController::class, 'apertura'])->name('cajas.apertura');
         Route::post('/caja/apertura', [CajaController::class, 'storeApertura'])->name('cajas.storeApertura');
         Route::post('/caja/cierre', [CajaController::class, 'storeCierre'])->name('cajas.storeCierre');
+        Route::post('/cajas/egreso', [CajaController::class, 'storeEgreso'])->name('cajas.storeEgreso');
     });
 
     // POS y Ventas
@@ -51,85 +52,78 @@ Route::middleware('auth')->group(function () {
         Route::post('/ventas', [VentaController::class, 'store'])->name('ventas.store');
         Route::post('/clientes/express', [ClienteController::class, 'storeExpress'])->name('clientes.storeExpress');
         Route::get('/ventas/{venta}/imprimir', [VentaController::class, 'imprimir'])->name('ventas.imprimir');
-        });
-        Route::middleware(['can:usar_pos'])->group(function () {
-    Route::post('/ventas/{venta}/pagos', [PagoClienteController::class, 'store'])->name('ventas.pagos.store');
-});
+    });
+
+    Route::middleware('can:usar_pos')->group(function () {
+        Route::post('/ventas/{venta}/pagos', [PagoClienteController::class, 'store'])->name('ventas.pagos.store');
+    });
 
     // Configuración de la Empresa
-    Route::middleware('can:gestionar_empresa')->group(function () { // <-- 2. AÑADIDO AQUÍ
+    Route::middleware('can:gestionar_empresa')->group(function () {
         Route::get('/configuracion/empresa', [EmpresaController::class, 'edit'])->name('empresa.edit');
         Route::put('/configuracion/empresa/{empresa}', [EmpresaController::class, 'update'])->name('empresa.update');
     });
-    
 
-    // Gestión de Usuarios: solo el administrador. La vista expone los datos de
-    // todos los empleados y el catalogo completo de permisos, asi que el permiso
-    // ver_usuarios por si solo no alcanza. 'show' no existe en el controlador:
-    // registrarla dejaba una ruta que reventaba con 500.
+    // Gestión de Usuarios
     Route::middleware(['can:ver_usuarios', 'role:administrador'])->group(function () {
-        Route::resource('users', UserController::class)
-            ->except(['show'])
-            ->middlewareFor(['create', 'store'], 'can:crear_usuarios')
-            ->middlewareFor(['edit', 'update'], 'can:editar_usuarios')
-            ->middlewareFor('destroy', 'can:eliminar_usuarios');
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+
+        Route::middleware('can:gestionar_usuarios')->group(function () {
+            Route::post('/users', [UserController::class, 'store'])->name('users.store');
+            Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+            Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        });
     });
 
-    // Clientes. El grupo exige acceso al modulo; cada verbo de escritura pide
-    // ademas su propio permiso.
+    // Clientes
     Route::middleware('can:ver_clientes')->group(function () {
-        Route::resource('clientes', ClienteController::class)
-            ->parameters(['clientes' => 'cliente'])
-            ->middlewareFor(['create', 'store'], 'can:crear_clientes')
-            ->middlewareFor(['edit', 'update'], 'can:editar_clientes')
-            ->middlewareFor('destroy', 'can:eliminar_clientes');
+        Route::get('/clientes', [ClienteController::class, 'index'])->name('clientes.index');
+
+        Route::middleware('can:gestionar_clientes')->group(function () {
+            Route::post('/clientes', [ClienteController::class, 'store'])->name('clientes.store');
+            Route::put('/clientes/{cliente}', [ClienteController::class, 'update'])->name('clientes.update');
+            Route::delete('/clientes/{cliente}', [ClienteController::class, 'destroy'])->name('clientes.destroy');
+        });
     });
 
     // Proveedores
     Route::middleware('can:ver_proveedores')->group(function () {
-        Route::resource('proveedores', ProveedorController::class)
-            ->parameters(['proveedores' => 'proveedor'])
-            ->middlewareFor(['create', 'store'], 'can:crear_proveedores')
-            ->middlewareFor(['edit', 'update'], 'can:editar_proveedores')
-            ->middlewareFor('destroy', 'can:eliminar_proveedores');
+        Route::get('/proveedores', [ProveedorController::class, 'index'])->name('proveedores.index');
+
+        Route::middleware('can:gestionar_proveedores')->group(function () {
+            Route::post('/proveedores', [ProveedorController::class, 'store'])->name('proveedores.store');
+            Route::put('/proveedores/{proveedor}', [ProveedorController::class, 'update'])->name('proveedores.update');
+            Route::delete('/proveedores/{proveedor}', [ProveedorController::class, 'destroy'])->name('proveedores.destroy');
+        });
     });
 
-    // Productos y Unidades de Medida. Ambos se editan desde modales, por eso los
-    // controladores no tienen create/show/edit: esas rutas del resource apuntaban
-    // a metodos inexistentes y respondian 500.
+    // Productos y Unidades de Medida
     Route::middleware('can:ver_productos')->group(function () {
-        Route::resource('productos', ProductoController::class)
-            ->parameters(['productos' => 'producto'])
-            ->except(['create', 'show', 'edit'])
-            ->middlewareFor('store', 'can:crear_productos')
-            ->middlewareFor('update', 'can:editar_productos')
-            ->middlewareFor('destroy', 'can:eliminar_productos');
+        Route::get('/productos', [ProductoController::class, 'index'])->name('productos.index');
+        Route::get('/unidad-medidas', [UnidadMedidaController::class, 'index'])->name('unidad-medidas.index');
 
-        Route::resource('unidad-medidas', UnidadMedidaController::class)
-            ->parameters(['unidad-medidas' => 'unidad_medida'])
-            ->except(['create', 'show', 'edit'])
-            ->middlewareFor('store', 'can:crear_productos')
-            ->middlewareFor('update', 'can:editar_productos')
-            ->middlewareFor('destroy', 'can:eliminar_productos');
+        Route::middleware('can:gestionar_productos')->group(function () {
+            Route::post('/productos', [ProductoController::class, 'store'])->name('productos.store');
+            Route::put('/productos/{producto}', [ProductoController::class, 'update'])->name('productos.update');
+            Route::patch('/productos/{producto}/toggle-estado', [ProductoController::class, 'toggleEstado'])->name('productos.toggleEstado');
+            Route::delete('/productos/{producto}', [ProductoController::class, 'destroy'])->name('productos.destroy');
 
-        Route::patch('/productos/{producto}/toggle-estado', [ProductoController::class, 'toggleEstado'])
-            ->middleware('can:editar_productos')
-            ->name('productos.toggleEstado');
+            Route::post('/unidad-medidas', [UnidadMedidaController::class, 'store'])->name('unidad-medidas.store');
+            Route::put('/unidad-medidas/{unidad_medida}', [UnidadMedidaController::class, 'update'])->name('unidad-medidas.update');
+            Route::delete('/unidad-medidas/{unidad_medida}', [UnidadMedidaController::class, 'destroy'])->name('unidad-medidas.destroy');
+        });
     });
 
-    // Compras. No hay edicion: el controlador no define edit/update, y esas dos
-    // rutas del resource respondian 500 al llamarlas.
+    // Compras
     Route::middleware('can:ver_compras')->group(function () {
-        Route::resource('compras', CompraController::class)
-            ->parameters(['compras' => 'compra'])
-            ->except(['edit', 'update'])
-            ->middlewareFor(['create', 'store'], 'can:crear_compras')
-            ->middlewareFor('destroy', 'can:eliminar_compras');
+        Route::get('/compras', [CompraController::class, 'index'])->name('compras.index');
+        Route::get('/compras/{compra}', [CompraController::class, 'show'])->name('compras.show');
 
-        // Registrar un abono modifica el saldo del proveedor: es escritura.
-        Route::post('/compras/{compra}/pagos', [CompraController::class, 'registrarPago'])
-            ->middleware('can:crear_compras')
-            ->name('compras.pagos.store');
+        Route::middleware('can:gestionar_compras')->group(function () {
+            Route::post('/compras', [CompraController::class, 'store'])->name('compras.store');
+            Route::post('/compras/{compra}/pagos', [CompraController::class, 'registrarPago'])->name('compras.pagos.store');
+            Route::delete('/compras/{compra}', [CompraController::class, 'destroy'])->name('compras.destroy');
+        });
     });
 
     // Kardex
@@ -141,12 +135,13 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:ver_reportes')->group(function () {
         Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
         Route::get('/reportes/pdf', [ReporteController::class, 'pdf'])->name('reportes.pdf');
+        Route::get('/ventas/{venta}/pdf', [VentaController::class, 'pdf'])->name('ventas.pdf');
     });
 
-    // Notificaciones (solo administración: los vendedores no las ven)
+    // Notificaciones
     Route::middleware('can:ver_notificaciones')->group(function () {
         Route::get('/notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
-        // Marcar y descartar cambian estado: van con permiso propio.
+
         Route::middleware('can:gestionar_notificaciones')->group(function () {
             Route::patch('/notificaciones/leer-todas', [NotificacionController::class, 'marcarTodasLeidas'])->name('notificaciones.leerTodas');
             Route::delete('/notificaciones/leidas', [NotificacionController::class, 'destroyLeidas'])->name('notificaciones.destroyLeidas');
@@ -157,14 +152,12 @@ Route::middleware('auth')->group(function () {
 });
 
 // ---------------------------------------------------------
-// EXPORTACION DE BASE DE DATOS (solo administrador)
+// EXPORTACIÓN DE BASE DE DATOS
 // ---------------------------------------------------------
 Route::get('/admin/export', [ExportController::class, 'index'])
     ->middleware(['auth', 'role:administrador'])
     ->name('export.index');
 
-// Cada request vuelca la base entera a disco: se limita para que no se pueda
-// usar como palanca de denegacion de servicio.
 Route::get('/export/descargar', [ExportController::class, 'descargar'])
     ->middleware(['auth', 'role:administrador', 'throttle:3,1'])
     ->name('export.descargar');

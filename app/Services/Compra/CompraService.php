@@ -2,6 +2,8 @@
 
 namespace App\Services\Compra;
 
+
+use Exception;
 use App\Models\Compra;
 use App\Models\PagoCompra;
 use App\Models\Producto;

@@ -23,6 +23,7 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "esc-pos-encoder": "^3.0.0",
         "lucide-react": "^1.32.0",
         "sweetalert2": "^11.26.25",
         "ziggy-js": "^2.6.3"

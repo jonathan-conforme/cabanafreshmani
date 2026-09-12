@@ -1,13 +1,21 @@
 import React, { useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { useForm } from '@inertiajs/react';
-// Reemplazamos la importación directa de Swal por tus funciones personalizadas
-import { successAlert, warningAlert, errorAlert } from "@/Components/SweetAlert.js";
-export default function ModalPagoCliente({ isOpen, onClose, venta }) {
+import { useForm, usePage } from '@inertiajs/react';
+import Swal from 'sweetalert2';
+import { warningAlert } from "@/Components/SweetAlert.js";
+import { imprimirTicketDirecto } from '@/Utils/printerService';
+
+
+export default function ModalPagoCliente({ isOpen, onClose, venta, empresa }) {
     if (!venta) return null;
 
-    const saldoPendiente = venta.saldoCalculado ?? (venta.saldo_pendiente > 0 ? venta.saldo_pendiente : (venta.total - (venta.pago_con || 0)));
+    // Obtener empresa de los props o del estado global de Inertia
+      const { props } = usePage();
+    const datosEmpresa = empresa || props.empresa || {};
+
+    const saldoPendiente = venta.saldoCalculado ?? 
+        (venta.saldo_pendiente > 0 ? venta.saldo_pendiente : (venta.total - (venta.pago_con || 0)));
 
     const { data, setData, post, processing, errors, reset } = useForm({
         monto: saldoPendiente,
@@ -19,10 +27,13 @@ export default function ModalPagoCliente({ isOpen, onClose, venta }) {
         if (venta) {
             setData('monto', saldoPendiente);
         }
-    }, [venta]);
+    }, [venta, saldoPendiente]);
 
  const handleSubmit = (e) => {
     e.preventDefault();
+
+    // 1. Capturar el monto abonado antes de enviar/resetear
+    const montoAbonado = Number(data.monto);
 
     post(route('ventas.pagos.store', venta.id), {
         preserveScroll: true,
@@ -34,10 +45,21 @@ export default function ModalPagoCliente({ isOpen, onClose, venta }) {
                 const mensajeError = serverErrors.caja || serverErrors.monto || serverErrors.error || 'No tienes una caja abierta para registrar pagos.';
                 warningAlert(mensajeError, 'Caja Cerrada');
             } else {
+                // 2. Crear una copia de la venta incorporando el abono recién realizado
+                const ventaActualizada = {
+                    ...venta,
+                    pagos: [
+                        ...(venta.pagos || []),
+                        {
+                            monto: montoAbonado,
+                            created_at: new Date().toISOString(),
+                        }
+                    ]
+                };
+
                 reset();
                 onClose();
 
-                // SweetAlert interactivo con opción de imprimir comprobante
                 Swal.fire({
                     title: '¡Pago Registrado!',
                     text: 'El abono se ingresó correctamente. ¿Deseas imprimir el comprobante?',
@@ -45,12 +67,12 @@ export default function ModalPagoCliente({ isOpen, onClose, venta }) {
                     showCancelButton: true,
                     confirmButtonColor: '#0E7C86',
                     cancelButtonColor: '#7A6A45',
-                    confirmButtonText: '🖨️ Ver / Imprimir Recibo',
+                    confirmButtonText: '🖨️ Imprimir Ticket Directo',
                     cancelButtonText: 'Cerrar',
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Abre la vista de impresión en una nueva pestaña
-                        window.open(route('ventas.imprimir', venta.id), '_blank');
+                        // 3. Imprimir el objeto actualizado
+                        imprimirTicketDirecto(ventaActualizada, datosEmpresa);
                     }
                 });
             }
@@ -156,7 +178,6 @@ export default function ModalPagoCliente({ isOpen, onClose, venta }) {
                                         >
                                             Guardar Pago
                                         </button>
-
                                     </div>
                                 </form>
                             </Dialog.Panel>

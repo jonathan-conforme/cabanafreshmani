@@ -79,7 +79,8 @@ class ProductoRequest extends FormRequest
             'factor_conversion' => [
                 'nullable',
                 'numeric',
-                'min:0'
+                'gt:0',
+                'required_if:permite_unidad_mayor,true',
             ],
 
             'precio_unidad_mayor' => [

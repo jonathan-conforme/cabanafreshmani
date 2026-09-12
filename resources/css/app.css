@@ -33,3 +33,27 @@
         background-color: #A3915F;
     }
 }
+/* Scrollbar personalizada para el Sidebar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(245, 185, 48, 0.25);
+    border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(245, 185, 48, 0.5);
+}
+
+/* Soporte para Firefox */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(245, 185, 48, 0.25) rgba(255, 255, 255, 0.05);
+}

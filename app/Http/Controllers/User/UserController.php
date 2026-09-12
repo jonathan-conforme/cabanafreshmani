@@ -59,47 +59,40 @@ class UserController extends Controller
     {
         $data = $request->validated();
 
-        if (empty($data['password'])) {
-            unset($data['password']);
-        } else {
-            $data['password'] = Hash::make($data['password']);
+        // 1. Proteger al Administrador Principal (ID 1) de perder su rol
+        if ($user->id === 1 && $data['role'] !== 'administrador') {
+            return back()->with('error', 'El administrador principal no puede perder su rol.');
         }
 
-        unset($data['password_confirmation']);
+        // 2. Bloquear degradación si es el único administrador del sistema
+        if ($user->hasRole('administrador') && $data['role'] !== 'administrador') {
+            if (User::role('administrador')->count() <= 1) {
+                return back()->with('error', 'No puedes quitar el rol al único administrador que queda en el sistema.');
+            }
+        }
 
-        $user->update([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            ...(! empty($data['password'])
-                ? ['password' => $data['password']]
-                : []),
-        ]);
-
-        $user->syncRoles($data['role']);
-
-        // Sincronizar permisos directos (limpia o asigna los seleccionados)
-        $user->syncPermissions($data['permissions'] ?? []);
+        $this->userService->updateUser($user, $data);
 
         return redirect()
             ->route('users.index')
             ->with('success', 'Empleado actualizado exitosamente.');
     }
 
-    /**
-     * El boton de eliminar ya existia en la vista, pero este metodo no: la ruta
-     * quedaba apuntando al vacio y respondia 500.
-     *
-     * Los dos cortes de abajo evitan dejar el sistema sin quien lo administre,
-     * que no se recupera desde la interfaz.
-     */
     public function destroy(User $user): RedirectResponse
     {
+        // 1. Evitar auto-eliminación
         if ($user->is(auth()->user())) {
-            return back()->with('error', 'No puedes eliminar tu propia cuenta desde aqui.');
+            return back()->with('error', 'No puedes eliminar tu propia cuenta desde aquí.');
         }
 
+        // 2. Protege al Administrador ID 1
+        if ($user->id === 1) {
+            return back()->with('error', 'El administrador principal del sistema no puede ser eliminado.');
+        }
+
+        // 3. Evita eliminar al último administrador
         if ($user->hasRole('administrador') && User::role('administrador')->count() <= 1) {
-            return back()->with('error', 'No puedes eliminar al unico administrador. Crea otro primero.');
+            return back()->with('error', 'No puedes eliminar al único administrador. Crea otro primero.');
         }
 
         $this->userService->deleteUser($user);

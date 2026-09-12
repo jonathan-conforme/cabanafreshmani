@@ -213,7 +213,7 @@ export default function Index({ clientes, filters }) {
                             <button
                                 type="button"
                                 onClick={handleCreate}
-                                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] px-7 py-3 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#E2650F]/25 transition hover:brightness-110 active:scale-[0.98]"
+                                className="cursor-pointer inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] px-7 py-3 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#E2650F]/25 transition hover:brightness-110 active:scale-[0.98]"
                             >
                                 Nuevo Cliente
                             </button>
@@ -241,7 +241,7 @@ export default function Index({ clientes, filters }) {
 
                             <button
                                 type="submit"
-                                className="rounded-full border border-[#0E7C86] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-[#0E7C86] transition hover:bg-[#0E7C86] hover:text-white"
+                                className="cursor-pointer rounded-full border border-[#0E7C86] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-[#0E7C86] transition hover:bg-[#0E7C86] hover:text-white"
                             >
                                 Buscar
                             </button>
@@ -632,7 +632,7 @@ export default function Index({ clientes, filters }) {
                                 <button
                                     type="button"
                                     onClick={handleCloseModal}
-                                    className="rounded-full border border-[#E5DCC0] px-7 py-3 text-xs font-bold uppercase tracking-wider text-[#7A6A45] transition hover:bg-[#FDF8E7]"
+                                    className=" cursor-pointer rounded-full border border-[#E5DCC0] px-7 py-3 text-xs font-bold uppercase tracking-wider text-[#7A6A45] transition hover:bg-[#FDF8E7]"
                                 >
                                     Cancelar
                                 </button>
@@ -640,7 +640,7 @@ export default function Index({ clientes, filters }) {
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] px-7 py-3 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#E2650F]/25 transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="cursor-pointer rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] px-7 py-3 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#E2650F]/25 transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {processing
                                         ? 'Guardando...'

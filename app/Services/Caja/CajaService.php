@@ -3,6 +3,7 @@ namespace App\Services\Caja;
 
 use App\Models\Caja;
 use App\Models\Venta;
+use App\Models\EgresoCaja;
 use Illuminate\Support\Facades\DB;
 
 class CajaService
@@ -23,6 +24,15 @@ class CajaService
             'fecha_apertura' => now(),
         ]);
     }
+    public function registrarEgreso(Caja $caja, int $userId, array $data): EgresoCaja
+    {
+        return EgresoCaja::create([
+            'caja_id' => $caja->id,
+            'user_id' => $userId,
+            'monto' => $data['monto'],
+            'concepto' => $data['concepto'],
+        ]);
+    }
 
     public function cerrarCaja(Caja $caja, array $data): Caja
     {
@@ -32,7 +42,10 @@ class CajaService
                 ->where('metodo_pago', 'efectivo')
                 ->sum('total');
 
-            $montoEsperado = $caja->monto_apertura + $ventasEfectivo;
+            $egresosEfectivo = EgresoCaja::where('caja_id', $caja->id)
+                ->sum('monto');
+
+            $montoEsperado = $caja->monto_apertura + $ventasEfectivo - $egresosEfectivo;
             $diferencia = $data['monto_cierre'] - $montoEsperado;
 
             $caja->update([

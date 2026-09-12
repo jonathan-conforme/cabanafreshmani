@@ -103,22 +103,22 @@ export default function Index({
     | GUARDAR / ACTUALIZAR
     |--------------------------------------------------------------------------
     */
- const handleSubmit = (e) => {
-    e.preventDefault();
+    const handleSubmit = (e) => {
+        e.preventDefault();
 
-    if (editingUser) {
-        put(route('users.update', editingUser.id), {
+        if (editingUser) {
+            put(route('users.update', editingUser.id), {
+                onSuccess: () => closeModal(),
+                onError: (err) => console.error('Errores al actualizar:', err),
+            });
+            return;
+        }
+
+        post(route('users.store'), {
             onSuccess: () => closeModal(),
-            onError: (err) => console.error('Errores al actualizar:', err),
+            onError: (err) => console.error('Errores al crear:', err),
         });
-        return;
-    }
-
-    post(route('users.store'), {
-        onSuccess: () => closeModal(),
-        onError: (err) => console.error('Errores al crear:', err),
-    });
-};
+    };
 
     /*
     |--------------------------------------------------------------------------
@@ -182,17 +182,17 @@ export default function Index({
                         </div>
                     ))}
                 </div>
-{/* CAJA DE ERRORES GENERALES */}
-{Object.keys(errors).length > 0 && (
-    <div className="sm:col-span-2 rounded-lg bg-red-50 p-3 text-xs text-red-600">
-        <p className="font-bold mb-1">Por favor corrige los siguientes errores:</p>
-        <ul className="list-disc list-inside">
-            {Object.values(errors).map((err, i) => (
-                <li key={i}>{err}</li>
-            ))}
-        </ul>
-    </div>
-)}
+                {/* CAJA DE ERRORES GENERALES */}
+                {Object.keys(errors).length > 0 && (
+                    <div className="sm:col-span-2 rounded-lg bg-red-50 p-3 text-xs text-red-600">
+                        <p className="font-bold mb-1">Por favor corrige los siguientes errores:</p>
+                        <ul className="list-disc list-inside">
+                            {Object.values(errors).map((err, i) => (
+                                <li key={i}>{err}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
                 {/* TABLA PRINCIPAL */}
                 <div className="overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-amber-100">
                     <div className="flex flex-col gap-4 border-b border-amber-100 bg-gradient-to-br from-amber-50 to-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7 sm:py-6">
@@ -245,22 +245,39 @@ export default function Index({
                                         </td>
 
                                         {/* PERMISOS DIRECTOS */}
-<td className="px-4 py-3 text-sm">
-    {user.permissions && user.permissions.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
-            {user.permissions.map((permiso) => (
-                <span
-                    key={permiso.id}
-                    className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
-                >
-                    {permiso.name.replace('_', ' ')}
-                </span>
-            ))}
-        </div>
-    ) : (
-        <span className="text-xs italic text-stone-400">Ninguno</span>
-    )}
-</td>
+                                        <td className="px-4 py-3 text-sm max-w-[220px]">
+                                            {user.permissions && user.permissions.length > 0 ? (
+                                                <div className="flex flex-wrap items-center justify-center gap-1">
+                                                    {/* Muestra solo los primeros 2 permisos */}
+                                                    {user.permissions.slice(0, 2).map((permiso) => {
+                                                        const permName = typeof permiso === 'string' ? permiso : permiso.name;
+                                                        return (
+                                                            <span
+                                                                key={permiso.id || permName}
+                                                                className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800"
+                                                            >
+                                                                {permName.replace('_', ' ')}
+                                                            </span>
+                                                        );
+                                                    })}
+
+                                                    {/* Si tiene más de 2, muestra la insignia +N con Tooltip */}
+                                                    {user.permissions.length > 2 && (
+                                                        <Tooltip
+                                                            text={user.permissions
+                                                                .map((p) => (typeof p === 'string' ? p : p.name).replace('_', ' '))
+                                                                .join(', ')}
+                                                        >
+                                                            <span className="inline-flex cursor-pointer items-center rounded-md bg-stone-200 px-2 py-0.5 text-[11px] font-bold text-stone-700 hover:bg-amber-200 hover:text-amber-900">
+                                                                +{user.permissions.length - 2} más
+                                                            </span>
+                                                        </Tooltip>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs italic text-stone-400">Ninguno</span>
+                                            )}
+                                        </td>
 
                                         <td className="px-5 py-4 text-stone-500 sm:px-7">
                                             {user.created_at ? new Date(user.created_at).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}
@@ -273,11 +290,7 @@ export default function Index({
                                                         <Pencil size={20} color="#2563eb" />
                                                     </button>
                                                 </Tooltip>
-                                                <Tooltip text="Restablecer contraseña">
-                                                    <button type="button" onClick={() => handleResetPassword(user)} className="cursor-pointer rounded-lg px-3 py-1.5 text-amber-600 hover:bg-amber-50">
-                                                        <Key size={20} color="#d97706" />
-                                                    </button>
-                                                </Tooltip>
+                                                
                                                 <Tooltip text="Eliminar empleado">
                                                     <button type="button" onClick={() => handleDelete(user)} className="cursor-pointer rounded-lg px-3 py-1.5 text-red-600 hover:bg-red-50">
                                                         <Trash size={20} color="#dc2626" />
@@ -399,11 +412,10 @@ export default function Index({
                                         return (
                                             <label
                                                 key={permName}
-                                                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-2.5 transition ${
-                                                    isChecked
+                                                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-2.5 transition ${isChecked
                                                         ? 'border-teal-500 bg-teal-50/50 text-teal-900 font-medium'
                                                         : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-100/60'
-                                                }`}
+                                                    }`}
                                             >
                                                 <input
                                                     type="checkbox"

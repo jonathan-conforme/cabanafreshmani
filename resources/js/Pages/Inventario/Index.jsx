@@ -169,7 +169,7 @@ export default function Index({ auth, movimientos, productos, filters }) {
                                                 ${formatNumber(m.costo_unitario, 2)}
                                             </td>
                                             <td className="px-6 py-4 text-xs text-gray-600">
-                                                <p className="font-medium text-gray-800">{m.motivo || 'Sin motivo especificado'}</p>
+                                                <p className="font-medium text-gray-800">{m.descripcion || 'Sin motivo especificado'}</p>
                                                 <p className="text-gray-400">Por: {m.user?.name || 'Sistema'}</p>
                                             </td>
                                         </tr>

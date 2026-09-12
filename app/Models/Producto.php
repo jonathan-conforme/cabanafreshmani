@@ -66,4 +66,5 @@ class Producto extends BaseModel
     {
         return $query->where('activo', true);
     }
+    
 }

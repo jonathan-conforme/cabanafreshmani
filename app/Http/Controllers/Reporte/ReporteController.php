@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\Venta;
 
 class ReporteController extends Controller
 {
@@ -17,6 +18,7 @@ class ReporteController extends Controller
 
     /** Reportes que se pueden descargar en PDF, con su orientacion de pagina. */
     protected const TIPOS_PDF = [
+        'ventas' => 'portrait',
         'compras' => 'portrait',
         'inventario' => 'portrait',
         'caja' => 'landscape',
@@ -27,6 +29,7 @@ class ReporteController extends Controller
     protected const SIN_RANGO_POR_DEFECTO = 'cuentas_cobrar';
 
     protected const TITULOS_PDF = [
+        'ventas' => 'ventas',
         'compras' => 'compras',
         'inventario' => 'inventario',
         'caja' => 'cierres-de-caja',
@@ -140,4 +143,26 @@ class ReporteController extends Controller
             default => 'Todos los saldos pendientes a la fecha',
         };
     }
+
+    public function descargarPdf(Request $request)
+{
+    $tipo = $request->input('tipo', 'ventas');
+    
+    // Si no vienen fechas en el filtro, asume la fecha actual (del día)
+    $desde = $request->input('desde') ?: now()->toDateString();
+    $hasta = $request->input('hasta') ?: now()->toDateString();
+
+    if ($tipo === 'ventas') {
+        $ventas = Venta::with(['cliente', 'user'])
+            ->whereBetween('created_at', ["{$desde} 00:00:00", "{$hasta} 23:59:59"])
+            ->get();
+
+        // Genera el PDF con la lista completa de ventas filtradas
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reportes.pdf_ventas_consolidado', compact('ventas', 'desde', 'hasta'));
+        
+        return $pdf->download("reporte_ventas_{$desde}_a_{$hasta}.pdf");
+    }
+
+    // ... otros tipos de reportes
+}
 }

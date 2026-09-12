@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Caja extends BaseModel
 {
-
-   use HasFactory;
+    use HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -24,5 +23,10 @@ class Caja extends BaseModel
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function egresos()
+    {
+        return $this->hasMany(EgresoCaja::class);
     }
 }

@@ -361,7 +361,7 @@ export default function Index({
                         <button
                             type="button"
                             onClick={() => setStockTab('historial')}
-                            className={`-mb-px border-b-2 pb-3 text-sm font-bold transition ${stockTab === 'historial'
+                            className={`-mb-px cursor-pointer border-b-2 pb-3 text-sm font-bold transition ${stockTab === 'historial'
                                     ? 'border-[#E2650F] text-[#2F2A20]'
                                     : 'border-transparent text-[#A3915F] hover:text-[#7A6A45]'
                                 }`}
@@ -371,7 +371,7 @@ export default function Index({
                         <button
                             type="button"
                             onClick={() => setStockTab('disponible')}
-                            className={`-mb-px border-b-2 pb-3 text-sm font-bold transition ${stockTab === 'disponible'
+                            className={`-mb-px cursor-pointer border-b-2 pb-3 text-sm font-bold transition ${stockTab === 'disponible'
                                     ? 'border-[#E2650F] text-[#2F2A20]'
                                     : 'border-transparent text-[#A3915F] hover:text-[#7A6A45]'
                                 }`}
@@ -423,7 +423,7 @@ export default function Index({
                                     <button
                                         type="button"
                                         onClick={openCreateModal}
-                                        className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] px-7 py-3 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#E2650F]/25 transition hover:brightness-110 active:scale-[0.98]"
+                                        className="cursor-pointer inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] px-7 py-3 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#E2650F]/25 transition hover:brightness-110 active:scale-[0.98]"
                                     >
                                         Nuevo Producto
                                     </button>
@@ -448,7 +448,7 @@ export default function Index({
 
                                     <button
                                         type="submit"
-                                        className="rounded-full border border-[#0E7C86] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-[#0E7C86] transition hover:bg-[#0E7C86] hover:text-white"
+                                        className="cursor-pointer rounded-full border border-[#0E7C86] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-[#0E7C86] transition hover:bg-[#0E7C86] hover:text-white"
                                     >
                                         Buscar
                                     </button>
@@ -750,7 +750,7 @@ export default function Index({
                             <button
                                 type="button"
                                 onClick={closeModal}
-                                className="flex h-9 w-9 items-center justify-center rounded-full text-2xl leading-none text-[#A3915F] transition hover:bg-white hover:text-[#D64545]"
+                                className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-full text-2xl leading-none text-[#A3915F] transition hover:bg-white hover:text-[#D64545]"
                             >
                                 ×
                             </button>
@@ -892,7 +892,7 @@ export default function Index({
                         precio_unidad_mayor: checked ? prev.precio_unidad_mayor : '',
                     }));
                 }}
-                className="rounded border-[#E5DCC0] text-[#0E7C86] focus:ring-[#0E7C86]"
+                className="cursor-pointer rounded border-[#E5DCC0] text-[#0E7C86] focus:ring-[#0E7C86]"
             />
             ¿Vender también por Saco, Bulto o Caja cerrada?
         </label>
@@ -1001,7 +1001,7 @@ export default function Index({
         <button
             type="button"
             onClick={closeModal}
-            className="rounded-full border border-[#E5DCC0] px-7 py-3 text-xs font-bold uppercase tracking-wider text-[#7A6A45] transition hover:bg-[#FDF8E7]"
+            className="cursor-pointer rounded-full border border-[#E5DCC0] px-7 py-3 text-xs font-bold uppercase tracking-wider text-[#7A6A45] transition hover:bg-[#FDF8E7]"
         >
             Cancelar
         </button>
@@ -1009,7 +1009,7 @@ export default function Index({
         <button
             type="submit"
             disabled={processing}
-            className="rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] px-7 py-3 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#E2650F]/25 transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="cursor-pointer rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] px-7 py-3 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#E2650F]/25 transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
         >
             {processing
                 ? 'Guardando...'

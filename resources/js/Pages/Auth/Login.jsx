@@ -155,7 +155,7 @@ export default function Login({ status, canResetPassword }) {
 
                         <div className="pt-2">
                             <PrimaryButton
-                                className="w-full justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-800 py-3 text-sm font-extrabold uppercase tracking-wide shadow-lg shadow-orange-900/30 transition hover:-translate-y-0.5 hover:shadow-xl focus:ring-teal-600 active:translate-y-0 disabled:opacity-70"
+                                className="w-full cursor-pointer justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-800 py-3 text-sm font-extrabold uppercase tracking-wide shadow-lg shadow-orange-900/30 transition hover:-translate-y-0.5 hover:shadow-xl focus:ring-teal-600 active:translate-y-0 disabled:opacity-70"
                                 disabled={processing}
                             >
                                 Ingresar

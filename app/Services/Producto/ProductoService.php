@@ -15,6 +15,7 @@ class ProductoService
 
     public function create(array $data): Producto
     {
+
         return DB::transaction(function () use ($data) {
          // 1. Guardar el stock inicial deseado en una variable
             $stockInicial = (float) ($data['stock'] ?? 0);
@@ -41,7 +42,29 @@ class ProductoService
 
     public function update(Producto $producto, array $data): Producto
     {
-       return DB::transaction(function () use ($producto, $data) {
+        return DB::transaction(function () use ($producto, $data) {
+            // Evalúa si la petición incluye modificación de stock (por ejemplo via API o Postman)
+            if (array_key_exists('stock', $data) && $data['stock'] !== null) {
+                $nuevoStock = (float) $data['stock'];
+                $stockActual = (float) $producto->stock;
+                $diferencia = $nuevoStock - $stockActual;
+
+                // Si detecta un cambio real, registra el ajuste en Kardex
+                if (abs($diferencia) > 0.0001) {
+                    $this->inventarioService->registrarMovimiento(
+                        productoId: $producto->id,
+                        tipo: 'ajuste',
+                        cantidad: $diferencia,
+                        costoUnitario: (float) ($producto->precio_compra ?? 0),
+                        descripcion: 'Ajuste de inventario desde edición de producto',
+                        origen: $producto
+                    );
+                }
+
+                // Elimina el campo 'stock' del array para evitar sobreescritura directa en BD
+                unset($data['stock']);
+            }
+
             $producto->update($data);
 
             return $producto->fresh('unidad');

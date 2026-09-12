@@ -13,7 +13,7 @@ export default function AuthenticatedLayout({ header, actions, children }) {
     const roles = user?.roles || [];
     const permissions = user?.permissions || [];
 
-    // 2. Funciones helper declaradas (resuelven el ReferenceError)
+    // 2. Funciones helper declaradas
     const hasRole = (role) => roles.includes(role);
     const hasAnyRole = (rolesArray) => rolesArray.some((r) => roles.includes(r));
     const can = (permission) => permissions.includes(permission);
@@ -46,7 +46,7 @@ export default function AuthenticatedLayout({ header, actions, children }) {
     const userMenuEscritorioRef = useRef(null);
 
     // ---------------------------------------------------------
-    // 1. ESCUCHADOR DEL MENÚ DE USUARIO (CLICK OUTSIDE Y ESC)
+    // 1. ESCUCHADOR DEL MENÚ DE USUARIO
     // ---------------------------------------------------------
     useEffect(() => {
         if (!showingUserMenu) return;
@@ -76,207 +76,194 @@ export default function AuthenticatedLayout({ header, actions, children }) {
     }, [showingUserMenu]);
 
     // ---------------------------------------------------------
-    // 2. ESCUCHADOR GLOBAL DE NOTIFICACIONES TOAST (SEPARADO)
+    // 2. ESCUCHADOR GLOBAL DE NOTIFICACIONES TOAST
     // ---------------------------------------------------------
     useEffect(() => {
-        if (flash?.success) {
-            toast(flash.success, 'success');
-        }
-        if (flash?.error) {
-            toast(flash.error, 'error');
-        }
-        if (flash?.info) {
-            toast(flash.info, 'info');
-        }
-        if (flash?.warning) {
-            toast(flash.warning, 'warning');
-        }
+        if (flash?.success) toast(flash.success, 'success');
+        if (flash?.error) toast(flash.error, 'error');
+        if (flash?.info) toast(flash.info, 'info');
+        if (flash?.warning) toast(flash.warning, 'warning');
     }, [flash]);
 
-    const navItems = [
+    // ---------------------------------------------------------
+    // 3. ESTRUCTURA NAVEGACIÓN AGRUPADA POR CATEGORÍAS
+    // ---------------------------------------------------------
+    const navCategories = [
         {
-            key: 'dashboard',
-            href: route('dashboard'),
-            active: route().current('dashboard'),
-            label: 'Dashboard',
-            show: true,
-            icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1 1 0 011.591 0L21.75 12M4.5 9.75v9.375c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V20.25h4.125c.621 0 1.125-.504 1.125-1.125V9.75" />
-                </svg>
-            ),
+            title: 'Principal',
+            items: [
+                {
+                    key: 'dashboard',
+                    href: route('dashboard'),
+                    active: route().current('dashboard'),
+                    label: 'Dashboard',
+                    show: true,
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1 1 0 011.591 0L21.75 12M4.5 9.75v9.375c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V20.25h4.125c.621 0 1.125-.504 1.125-1.125V9.75" />
+                        </svg>
+                    ),
+                },
+            ],
         },
         {
-            key: 'caja',
-            href: route('cajas.apertura'),
-            active: route().current('cajas.*'),
-            label: 'Control de Caja',
-            show: can('gestionar_caja') || hasRole('administrador'),
-            icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM12 6v6l4 2" />
-                </svg>
-            ),
+            title: 'Ventas & Caja',
+            items: [
+                {
+                    key: 'caja',
+                    href: route('cajas.apertura'),
+                    active: route().current('cajas.*'),
+                    label: 'Control de Caja',
+                    show: can('gestionar_caja') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM12 6v6l4 2" />
+                        </svg>
+                    ),
+                },
+                {
+                    key: 'pos',
+                    href: route('pos.index'),
+                    active: route().current('pos.*') || route().current('ventas.*'),
+                    label: 'POS Ventas',
+                    show: can('usar_pos') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.836l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 1.994-4.708 2.6-7.19a1.125 1.125 0 00-1.11-1.36H5.106M7.5 14.25L5.106 5.106M7.5 14.25L6 20.25m9-6l1.5 6M9 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm9 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                        </svg>
+                    ),
+                },
+                {
+                    key: 'clientes',
+                    href: route('clientes.index'),
+                    active: route().current('clientes.*'),
+                    label: 'Clientes',
+                    show: can('ver_clientes') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
+                        </svg>
+                    ),
+                },
+            ],
         },
         {
-            key: 'pos',
-            href: route('pos.index'),
-            active: route().current('pos.*') || route().current('ventas.*'),
-            label: 'POS Ventas',
-            show: can('usar_pos') || hasRole('administrador'),
-            icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.836l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 1.994-4.708 2.6-7.19a1.125 1.125 0 00-1.11-1.36H5.106M7.5 14.25L5.106 5.106M7.5 14.25L6 20.25m9-6l1.5 6M9 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm9 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                </svg>
-            ),
+            title: 'Inventario & Compras',
+            items: [
+                {
+                    key: 'productos',
+                    href: route('productos.index'),
+                    active: route().current('productos.*'),
+                    label: 'Productos',
+                    show: can('ver_productos') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7.5L12 3 4 7.5m16 0L12 12 4 7.5M20 7.5V16.5L12 21 4 16.5V7.5M12 12V21" />
+                        </svg>
+                    ),
+                },
+                {
+                    key: 'unidad-medidas',
+                    href: route('unidad-medidas.index'),
+                    active: route().current('unidad-medidas.*'),
+                    label: 'Unidades de Medida',
+                    show: can('ver_unidad-medidas') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18m9-6-9 6-9-6" />
+                        </svg>
+                    ),
+                },
+                {
+                    key: 'compras',
+                    href: route('compras.index'),
+                    active: route().current('compras.*'),
+                    label: 'Compras',
+                    show: can('ver_compras') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
+                        </svg>
+                    ),
+                },
+                {
+                    key: 'proveedores',
+                    href: route('proveedores.index'),
+                    active: route().current('proveedores.*'),
+                    label: 'Proveedores',
+                    show: can('ver_proveedores') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-8.673v8.673m0 0h-12" />
+                        </svg>
+                    ),
+                },
+                {
+                    key: 'kardex',
+                    href: route('kardex.index'),
+                    active: route().current('kardex.*'),
+                    label: 'Kardex / Movimientos',
+                    show: can('ver_kardex') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    ),
+                },
+            ],
         },
         {
-            key: 'usuarios',
-            href: route('users.index'),
-            active: route().current('users.*'),
-            label: 'Usuarios',
-            show: can('ver_usuarios') || hasRole('administrador'),
-            icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                </svg>
-            ),
-        },
-        {
-            key: 'clientes',
-            href: route('clientes.create'),
-            active: route().current('clientes.*'),
-            label: 'Clientes',
-            show: can('ver_clientes') || hasRole('administrador'),
-            icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
-                </svg>
-            ),
-        },
-        {
-            key: 'proveedores',
-            href: route('proveedores.index'),
-            active: route().current('proveedores.*'),
-            label: 'Proveedores',
-            show: can('ver_proveedores') || hasRole('administrador'),
-            icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-8.673v8.673m0 0h-12" />
-                </svg>
-            ),
-        },
-        {
-            key: 'productos',
-            href: route('productos.index'),
-            active: route().current('productos.*'),
-            label: 'Productos',
-            show: can('ver_productos') || hasRole('administrador'),
-            icon: (
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.6}
-                    className="h-5 w-5"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M20 7.5L12 3 4 7.5m16 0L12 12 4 7.5M20 7.5V16.5L12 21 4 16.5V7.5M12 12V21"
-                    />
-                </svg>
-            ),
-        },
-        {
-            key: 'Compras',
-            href: route('compras.index'),
-            active: route().current('compras.*'),
-            label: 'Compras',
-            show: can('ver_compras') || hasRole('administrador'),
-            icon: (
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.6}
-                    className="h-5 w-5"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M20 7.5L12 3 4 7.5m16 0L12 12 4 7.5M20 7.5V16.5L12 21 4 16.5V7.5M12 12V21"
-                    />
-                </svg>
-            ),
-        },
-        {
-            key: 'kardex',
-            href: route('kardex.index'),
-            active: route().current('kardex.*'),
-            label: 'Kardex / Movimientos',
-            show: can('ver_kardex') || hasRole('administrador'),
-            icon: (
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.6}
-                    className="h-5 w-5"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                </svg>
-            ),
-        },
-        {
-            key: 'reportes',
-            href: route('reportes.index'),
-            active: route().current('reportes.*'),
-            label: 'Reportes',
-            show: can('ver_reportes') || hasRole('administrador'),
-            icon: (
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.6}
-                    className="h-5 w-5"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M3 3v16.5A1.5 1.5 0 004.5 21H21M7.5 15.75V12M12 15.75V8.25M16.5 15.75V5.25"
-                    />
-                </svg>
-            ),
-        },
-        {
-            key: 'empresa',
-            href: route('empresa.edit'),
-            active: route().current('empresa.*'),
-            label: 'Configuración Empresa',
-            show: can('gestionar_empresa') || hasRole('administrador'),
-            icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6h1.5m-1.5 3h1.5m-1.5 3h1.5M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-                </svg>
-            ),
-        },
-        {
-            key: 'notificaciones',
-            href: route('notificaciones.index'),
-            active: route().current('notificaciones.*'),
-            label: 'Notificaciones',
-            show: can('ver_notificaciones') || hasRole('administrador'),
-            icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                </svg>
-            ),
+            title: 'Administración',
+            items: [
+                {
+                    key: 'usuarios',
+                    href: route('users.index'),
+                    active: route().current('users.*'),
+                    label: 'Usuarios',
+                    show: can('ver_usuarios') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                        </svg>
+                    ),
+                },
+                {
+                    key: 'reportes',
+                    href: route('reportes.index'),
+                    active: route().current('reportes.*'),
+                    label: 'Reportes',
+                    show: can('ver_reportes') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v16.5A1.5 1.5 0 004.5 21H21M7.5 15.75V12M12 15.75V8.25M16.5 15.75V5.25" />
+                        </svg>
+                    ),
+                },
+                {
+                    key: 'empresa',
+                    href: route('empresa.edit'),
+                    active: route().current('empresa.*'),
+                    label: 'Configuración Empresa',
+                    show: can('gestionar_empresa') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6h1.5m-1.5 3h1.5m-1.5 3h1.5M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                        </svg>
+                    ),
+                },
+                {
+                    key: 'notificaciones',
+                    href: route('notificaciones.index'),
+                    active: route().current('notificaciones.*'),
+                    label: 'Notificaciones',
+                    show: can('ver_notificaciones') || hasRole('administrador'),
+                    icon: (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                        </svg>
+                    ),
+                },
+            ],
         },
     ];
 
@@ -308,36 +295,51 @@ export default function AuthenticatedLayout({ header, actions, children }) {
                     </Link>
                 </div>
 
-                <nav className="scrollbar-oculta flex-1 space-y-1.5 overflow-y-auto px-3 py-5">
-                    {navItems
-                        .filter((item) => item.show)
-                        .map((item) => (
-                            <Link
-                                key={item.key}
-                                href={item.href}
-                                aria-current={item.active ? 'page' : undefined}
-                                className={`group flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm font-semibold transition ${item.active
-                                    ? 'bg-gradient-to-br from-orange-500 to-[#c85a0a] text-white shadow-lg shadow-orange-900/40'
-                                    : 'text-[#e7d3ac] hover:bg-white/5 hover:text-white'
-                                    }`}
-                            >
-                                <span
-                                    className={`flex h-8 w-8 items-center justify-center rounded-full transition ${item.active
-                                        ? 'bg-white/20 text-white'
-                                        : 'bg-white/10 text-amber-400 group-hover:text-amber-300'
-                                        }`}
-                                >
-                                    {item.icon}
-                                </span>
-                                {item.label}
-                                {item.active && (
-                                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />
+                {/* Navegación por Secciones */}
+                <nav className="custom-scrollbar flex-1 space-y-5 overflow-y-auto px-3 py-4">
+                    {navCategories.map((category, catIdx) => {
+                        const visibleItems = category.items.filter((item) => item.show);
+
+                        if (visibleItems.length === 0) return null;
+
+                        return (
+                            <div key={catIdx} className="space-y-1.5">
+                                {category.title && (
+                                    <h3 className="px-3.5 text-[10px] font-bold uppercase tracking-wider text-amber-200/40">
+                                        {category.title}
+                                    </h3>
                                 )}
-                            </Link>
-                        ))}
+
+                                {visibleItems.map((item) => (
+                                    <Link
+                                        key={item.key}
+                                        href={item.href}
+                                        aria-current={item.active ? 'page' : undefined}
+                                        className={`group flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm font-semibold transition ${item.active
+                                            ? 'bg-gradient-to-br from-orange-500 to-[#c85a0a] text-white shadow-lg shadow-orange-900/40'
+                                            : 'text-[#e7d3ac] hover:bg-white/5 hover:text-white'
+                                            }`}
+                                    >
+                                        <span
+                                            className={`flex h-8 w-8 items-center justify-center rounded-full transition ${item.active
+                                                ? 'bg-white/20 text-white'
+                                                : 'bg-white/10 text-amber-400 group-hover:text-amber-300'
+                                                }`}
+                                        >
+                                            {item.icon}
+                                        </span>
+                                        {item.label}
+                                        {item.active && (
+                                            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />
+                                        )}
+                                    </Link>
+                                ))}
+                            </div>
+                        );
+                    })}
                 </nav>
 
-                {/* Usuario (solo en móvil; en PC va en la barra superior del dashboard) */}
+                {/* Usuario en móvil */}
                 <div ref={userMenuRef} className="relative shrink-0 border-t border-white/10 p-3 lg:hidden">
                     <button
                         type="button"
@@ -362,8 +364,7 @@ export default function AuthenticatedLayout({ header, actions, children }) {
                             )}
                         </span>
                         <svg
-                            className={`h-4 w-4 shrink-0 text-stone-400 transition-transform duration-200 ${showingUserMenu ? 'rotate-180' : ''
-                                }`}
+                            className={`h-4 w-4 shrink-0 text-stone-400 transition-transform duration-200 ${showingUserMenu ? 'rotate-180' : ''}`}
                             viewBox="0 0 20 20"
                             fill="currentColor"
                         >
@@ -476,7 +477,7 @@ export default function AuthenticatedLayout({ header, actions, children }) {
                         <div className="flex shrink-0 items-center gap-3 sm:gap-4">
                             {actions}
 
-                            {/* Solo escritorio: en el celular esto vive en la barra café y el sidebar */}
+                            {/* Solo escritorio */}
                             <div className="hidden items-center gap-4 lg:flex">
                                 <NotificationBell />
 
@@ -493,8 +494,7 @@ export default function AuthenticatedLayout({ header, actions, children }) {
                                         </span>
                                         <span className="text-sm font-semibold text-stone-700">{user.name}</span>
                                         <svg
-                                            className={`h-4 w-4 text-stone-400 transition-transform duration-200 ${showingUserMenu ? 'rotate-180' : ''
-                                                }`}
+                                            className={`h-4 w-4 text-stone-400 transition-transform duration-200 ${showingUserMenu ? 'rotate-180' : ''}`}
                                             viewBox="0 0 20 20"
                                             fill="currentColor"
                                         >

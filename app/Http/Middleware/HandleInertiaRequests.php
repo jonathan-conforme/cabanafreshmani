@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Notificacion;
 use Illuminate\Http\Request;
+use App\Models\Empresa;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -54,6 +55,19 @@ class HandleInertiaRequests extends Middleware
                 'no_leidas' => Notificacion::noLeidas()->count(),
                 'recientes' => Notificacion::latest()->limit(8)->get(),
             ] : null,
+
+            // 2. Datos públicos de la empresa compartidos de forma segura para tickets
+            'empresa' => fn () => Empresa::select([
+                'nombre_comercial',
+                'razon_social',
+                'ruc',
+                'direccion_matriz',
+                'telefono',
+                'email',
+                'leyenda_ticket',
+                'ambiente_sri',
+                'obligado_contabilidad',
+            ])->first(),
 
         ];
     }

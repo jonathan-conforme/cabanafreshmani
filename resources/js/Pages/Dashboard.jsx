@@ -13,17 +13,17 @@ import {
 /** Cada cuántos segundos se vuelven a pedir los datos del dashboard. */
 const REFRESH_SECONDS = 30;
 
-/*
-|--------------------------------------------------------------------------
-| Todos los datos llegan como props desde DashboardController.
-| Los valores por defecto sólo evitan que la vista reviente si llega vacía.
-|--------------------------------------------------------------------------
-*/
 const ICONS = {
     wallet: Wallet,
     trending: TrendingUp,
     chart: BarChart3,
     alert: AlertTriangle,
+};
+
+const TITULOS_GRAFICO = {
+    dias: 'Ventas de los Últimos 14 Días',
+    semanas: 'Ventas de las Últimas 8 Semanas',
+    meses: 'Ventas de los Últimos 12 Meses',
 };
 
 /*
@@ -106,7 +106,7 @@ function DonutChart({ segments, total }) {
 
 /*
 |--------------------------------------------------------------------------
-| GRÁFICO DE LÍNEA (SVG puro, escala automática + tooltip al pasar el mouse)
+| GRÁFICO DE LÍNEA (SVG puro, escala automática + tooltip)
 |--------------------------------------------------------------------------
 */
 function niceCeil(n) {
@@ -251,8 +251,33 @@ export default function Dashboard({
     invoices = { total: 0, segments: [] },
     sales = [],
     recent = [],
+    periodo = 'dias',
 }) {
-    /* ---- Auto-actualización en segundo plano (polling, sin UI) ---- */
+    const [periodoFiltro, setPeriodoFiltro] = useState(periodo);
+
+    // Sincroniza el estado local con la prop cuando llega una actualización
+    useEffect(() => {
+        setPeriodoFiltro(periodo);
+    }, [periodo]);
+
+    // Cambia el filtro solicitando solo la prop del gráfico mediante Inertia Partial Reload
+    const handlePeriodoChange = (e) => {
+        const nuevoPeriodo = e.target.value;
+        setPeriodoFiltro(nuevoPeriodo);
+
+        router.get(
+            route('dashboard'),
+            { periodo: nuevoPeriodo },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['sales', 'periodo'],
+            }
+        );
+    };
+
+    /* ---- Auto-actualización en segundo plano (polling) ---- */
     const refreshingRef = useRef(false);
 
     const refreshNow = useCallback(() => {
@@ -269,7 +294,6 @@ export default function Dashboard({
         });
     }, []);
 
-    // Pide datos nuevos cada REFRESH_SECONDS, solo si la pestaña está visible.
     useEffect(() => {
         const id = setInterval(() => {
             if (document.visibilityState === 'visible') {
@@ -280,7 +304,6 @@ export default function Dashboard({
         return () => clearInterval(id);
     }, [refreshNow]);
 
-    // Refresca al volver a la pestaña tras tenerla en segundo plano.
     useEffect(() => {
         const onVisible = () => {
             if (document.visibilityState === 'visible') {
@@ -337,12 +360,26 @@ export default function Dashboard({
                         )}
                     </div>
 
-                    {/* Análisis de ventas */}
+                    {/* Análisis de ventas dinámico */}
                     <div className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-amber-100 lg:col-span-3">
-                        <div className="mb-4 flex items-center justify-between">
-                            <h2 className="font-bold text-teal-700">Ventas de los Últimos 14 Días</h2>
-                            <MoreHorizontal size={20} className="text-stone-300" />
+                        <div className="mb-4 flex items-center justify-between gap-2">
+                            <h2 className="font-bold text-teal-700">
+                                {TITULOS_GRAFICO[periodoFiltro] || TITULOS_GRAFICO.dias}
+                            </h2>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={periodoFiltro}
+                                    onChange={handlePeriodoChange}
+                                    className="rounded-lg border border-amber-200 bg-[#FFFDF6] px-3 py-1 text-xs font-semibold text-stone-600 outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600"
+                                >
+                                    <option value="dias">Días (14D)</option>
+                                    <option value="semanas">Semanas (8S)</option>
+                                    <option value="meses">Meses (12M)</option>
+                                </select>
+                                <MoreHorizontal size={20} className="text-stone-300" />
+                            </div>
                         </div>
+
                         {sales.length === 0 ? (
                             <p className="py-14 text-center text-sm text-stone-400">Sin datos de ventas.</p>
                         ) : (

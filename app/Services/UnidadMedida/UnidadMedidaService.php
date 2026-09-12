@@ -43,6 +43,13 @@ class UnidadMedidaService
 
     public function delete(UnidadMedida $unidadMedida): bool
     {
-        return $unidadMedida->delete();
+        try {
+            return (bool) $unidadMedida->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() === '23000') { // Violación de clave foránea
+                throw new \DomainException('No se puede eliminar la unidad de medida porque tiene productos asociados.');
+            }
+            throw $e;
+        }
     }
 }

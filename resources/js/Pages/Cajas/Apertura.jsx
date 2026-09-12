@@ -44,7 +44,7 @@ export default function Apertura() {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="w-full rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] py-3.5 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]"
+                            className="cursor-pointer w-full rounded-full bg-gradient-to-r from-[#F08A24] to-[#E2650F] py-3.5 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]"
                         >
                             {processing ? 'Abriendo...' : 'Abrir Caja y Pasar al POS'}
                         </button>
